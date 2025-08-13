@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, interactive-widget=resizes-content" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>Vivica - AI Assistant</title>
+    <meta name="description" content="Vivica - Your intelligent AI assistant" />
+    <meta name="author" content="Dustin" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" href="uploads/790c3ad0-f2a5-41ef-ac83-99cb6bdd3112.png" type="image/png" />
+    <meta property="og:title" content="Vivica - AI Assistant" />
+    <meta property="og:description" content="Your intelligent AI assistant" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="uploads/790c3ad0-f2a5-41ef-ac83-99cb6bdd3112.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="uploads/790c3ad0-f2a541ef-ac83-99cb6bdd3112.png" />
+
+    <!-- Dynamically update the status bar theme color based on the app's theme -->
+    <script>
+      (function () {
+        const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+        const darkColor = '#000000';
+        const lightColor = '#ffffff';
+
+        // Determine the current theme: stored preference or system preference
+        function getCurrentTheme() {
+          const stored = localStorage.getItem('vivica-theme');
+          if (stored === 'light' || stored === 'dark') {
+            return stored;
+          }
+          // Fallback to system preference
+          return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+
+        // Apply the appropriate color to the meta tag
+        function applyThemeColor() {
+          const theme = getCurrentTheme();
+          metaThemeColor.setAttribute('content', theme === 'dark' ? darkColor : lightColor);
+        }
+
+        // Initial application
+        applyThemeColor();
+
+        // Listen for changes in system preference
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyThemeColor);
+
+        // Listen for changes in localStorage (e.g., when the user toggles theme in the app)
+        window.addEventListener('storage', (e) => {
+          if (e.key === 'vivica-theme') {
+            applyThemeColor();
+          }
+        });
+      })();
+    </script>
+    <script type="module" crossorigin src="./assets/index-DfLjLlps.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-BbGX_Dwo.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
