@@ -6,6 +6,8 @@ import {
   useContext,
 } from 'react';
 import { Storage, DebouncedStorage, STORAGE_KEYS } from '@/utils/storage';
+import { Capacitor } from '@capacitor/core';
+import { StatusBar, Style } from '@capacitor/status-bar';
 
 export type ThemeVariant = 'dark' | 'light';
 export type ThemeColor = 'default' | 'blue' | 'red' | 'green' | 'purple';
@@ -36,14 +38,26 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', `${color}-${variant}`);
     document.documentElement.classList.toggle('dark', variant === 'dark');
-    
+
     // Set status bar colors based on theme
     const themeColor = variant === 'dark' ? '#0a0a0a' : '#ffffff';
     const metaThemeColor = document.querySelector('meta[name="theme-color"]');
     if (metaThemeColor) {
       metaThemeColor.setAttribute('content', themeColor);
     }
-    
+
+    const updateStatusBar = async () => {
+      if (Capacitor.isNativePlatform()) {
+        try {
+          await StatusBar.setBackgroundColor({ color: themeColor });
+          await StatusBar.setStyle({ style: variant === 'dark' ? Style.Dark : Style.Light });
+        } catch {
+          // ignore if StatusBar plugin is unavailable
+        }
+      }
+    };
+    void updateStatusBar();
+
     DebouncedStorage.set(STORAGE_KEYS.THEME, { color, variant }, 300);
   }, [color, variant]);
 
