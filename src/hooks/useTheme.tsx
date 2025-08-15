@@ -5,6 +5,8 @@ import {
   createContext,
   useContext,
 } from 'react';
+import { StatusBar, Style } from '@capacitor/status-bar';
+import { Capacitor } from '@capacitor/core';
 import { Storage, DebouncedStorage, STORAGE_KEYS } from '@/utils/storage';
 import { useDynamicTheme } from '@/hooks/useDynamicTheme';
 
@@ -50,6 +52,20 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     document.documentElement.classList.toggle('dark', variant === 'dark');
     DebouncedStorage.set(STORAGE_KEYS.THEME, { color, variant }, 300);
   }, [color, variant]);
+
+  useEffect(() => {
+    const applyStatusBar = async () => {
+      if (!Capacitor.isNativePlatform()) return;
+      const isLight = variant === 'light';
+      try {
+        await StatusBar.setBackgroundColor({ color: isLight ? '#ffffff' : '#000000' });
+        await StatusBar.setStyle({ style: isLight ? Style.Dark : Style.Light });
+      } catch {
+        // Ignore errors when StatusBar plugin is unavailable
+      }
+    };
+    applyStatusBar();
+  }, [variant]);
 
   useDynamicTheme(currentMood, variant, color === 'ai-choice');
 
