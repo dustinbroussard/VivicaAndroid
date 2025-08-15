@@ -10,6 +10,18 @@ import { Capacitor } from '@capacitor/core';
 import { Storage, DebouncedStorage, STORAGE_KEYS } from '@/utils/storage';
 import { useDynamicTheme } from '@/hooks/useDynamicTheme';
 
+const hslToHex = (h: number, s: number, l: number) => {
+  s /= 100;
+  l /= 100;
+  const k = (n: number) => (n + h / 30) % 12;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n: number) =>
+    Math.round((l - a * Math.max(-1, Math.min(Math.min(k(n) - 3, 9 - k(n)), 1))) * 255)
+      .toString(16)
+      .padStart(2, '0');
+  return `#${f(0)}${f(8)}${f(4)}`;
+};
+
 export type ThemeVariant = 'dark' | 'light';
 export type ThemeColor =
   | 'default'
@@ -56,16 +68,20 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const applyStatusBar = async () => {
       if (!Capacitor.isNativePlatform()) return;
-      const isLight = variant === 'light';
       try {
-        await StatusBar.setBackgroundColor({ color: isLight ? '#ffffff' : '#000000' });
+        const rootStyles = getComputedStyle(document.documentElement);
+        const hsl = rootStyles.getPropertyValue('--background').trim();
+        const [h, s, l] = hsl.split(/\s+/).map(v => parseFloat(v.replace('%', '')));
+        const hex = hslToHex(h, s, l);
+        await StatusBar.setBackgroundColor({ color: hex });
+        const isLight = l > 50;
         await StatusBar.setStyle({ style: isLight ? Style.Dark : Style.Light });
       } catch {
         // Ignore errors when StatusBar plugin is unavailable
       }
     };
     applyStatusBar();
-  }, [variant]);
+  }, [color, variant]);
 
   useDynamicTheme(currentMood, variant, color === 'ai-choice');
 
