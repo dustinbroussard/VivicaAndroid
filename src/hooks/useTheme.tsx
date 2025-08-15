@@ -81,7 +81,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
       }
     };
     applyStatusBar();
-  }, [color, variant]);
+  }, [color, variant, currentMood]);
 
   useDynamicTheme(currentMood, variant, color === 'ai-choice');
 
