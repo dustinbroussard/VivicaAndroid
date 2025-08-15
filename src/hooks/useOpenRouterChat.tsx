@@ -1,6 +1,7 @@
 
 import { useState, useCallback } from 'react';
 import { ChatService, ChatMessage } from '@/services/chatService';
+import { getPrimaryApiKey } from '@/utils/api';
 
 interface UseOpenRouterChatProps {
   apiKey?: string;
@@ -17,7 +18,8 @@ export const useOpenRouterChat = ({ apiKey }: UseOpenRouterChatProps = {}) => {
     onToken: (token: string) => void,
     onComplete: () => void
   ) => {
-    if (!apiKey) {
+    const key = apiKey || getPrimaryApiKey();
+    if (!key) {
       setError('OpenRouter API key is required');
       return;
     }
@@ -26,7 +28,7 @@ export const useOpenRouterChat = ({ apiKey }: UseOpenRouterChatProps = {}) => {
     setError(null);
 
     try {
-      const chatService = new ChatService(apiKey);
+      const chatService = new ChatService(key);
       const response = await chatService.sendMessage({
         model,
         messages,

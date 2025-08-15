@@ -20,6 +20,7 @@ import {
   ConversationEntry,
 } from "@/utils/indexedDb";
 import { useTheme, ThemeColor, ThemeVariant } from "@/hooks/useTheme";
+import { getPrimaryApiKey } from "@/utils/api";
 
 function weatherCodeToText(code: number): string {
   const map: Record<number, string> = {
@@ -519,7 +520,7 @@ const Index = () => {
 
     setIsTyping(true);
 
-    const apiKey = localStorage.getItem('openrouter-api-key');
+    const apiKey = getPrimaryApiKey();
     if (!apiKey) {
       toast.error('Please set your OpenRouter API key in Settings.');
       setIsTyping(false);
@@ -904,7 +905,7 @@ const Index = () => {
   const handleSaveSummary = async () => {
     if (!currentConversation || !currentProfile) return;
 
-    const apiKey = localStorage.getItem('openrouter-api-key');
+    const apiKey = getPrimaryApiKey();
     if (!apiKey) {
       toast.error('Please set your OpenRouter API key in Settings.');
       return;
@@ -937,7 +938,7 @@ const Index = () => {
     const conversation = conv || currentConversation;
     if (!conversation || !currentProfile) return;
 
-    const apiKey = localStorage.getItem('openrouter-api-key');
+    const apiKey = getPrimaryApiKey();
     if (!apiKey) {
       toast.error('Please set your OpenRouter API key in Settings.');
       return;

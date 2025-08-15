@@ -20,21 +20,17 @@ const AppContent = () => {
   console.log("App component rendering...");
 
   return (
-    <>
-      <meta name="theme-color" content="#0a0a0a" />
-      <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <InstallPrompt />
-        <BrowserRouter future={routerFutureFlags}>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <InstallPrompt />
+      <BrowserRouter future={routerFutureFlags}>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
+    </TooltipProvider>
   );
 };
 

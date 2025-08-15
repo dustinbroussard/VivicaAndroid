@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { Loader2, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { fetchArticleText } from '@/services/rssService';
-import { DEFAULT_RSS_FEED } from '@/utils/constants';
+import { DEFAULT_RSS_FEED, CORS_PROXY } from '@/utils/constants';
 
 interface Headline {
   title: string;
@@ -23,7 +23,7 @@ async function fetchRSSSummariesWithLinks(urls: string[]): Promise<Headline[]> {
   
   for (const url of urls) {
     try {
-      const resp = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`);
+      const resp = await fetch(`${CORS_PROXY}${url}`);
       const data = await resp.text();
       if (!data) continue;
 

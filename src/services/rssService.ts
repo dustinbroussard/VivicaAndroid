@@ -1,6 +1,6 @@
 // Readability gives us a clean article body from messy HTML pages.
 import { Readability } from '@mozilla/readability';
-import { DEFAULT_RSS_FEED } from '@/utils/constants';
+import { DEFAULT_RSS_FEED, CORS_PROXY } from '@/utils/constants';
 
 export interface Headline {
   title: string;
@@ -22,7 +22,7 @@ export async function fetchRSSHeadlines(): Promise<Headline[]> {
 
   for (const url of feeds) {
     try {
-      const resp = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`);
+      const resp = await fetch(`${CORS_PROXY}${url}`);
       const data = await resp.text();
       if (!data) continue;
 
@@ -54,7 +54,7 @@ export async function fetchRSSHeadlines(): Promise<Headline[]> {
 // Fetch the full article HTML via a CORS proxy and extract just the readable
 // content using Mozilla's Readability algorithm.
 export async function fetchArticleText(url: string): Promise<string> {
-  const resp = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`);
+  const resp = await fetch(`${CORS_PROXY}${url}`);
   const html = await resp.text();
 
   // Parse the HTML string in a detached document to avoid leaking scripts/styles

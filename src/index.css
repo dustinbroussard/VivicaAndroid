@@ -63,10 +63,26 @@
     --modal-bg: hsl(var(--bg-secondary));
     --modal-radius: 16px;
     --modal-mobile-radius: 0;
+    transition: all 0.5s ease-in-out;
   }
 
   button, [role="button"], input[type="button"], input[type="submit"] {
     touch-action: manipulation;
+  }
+}
+
+.theme-changing {
+  animation: theme-fade 0.5s ease-in-out;
+}
+
+@keyframes theme-fade {
+  from {
+    opacity: 0;
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
   }
 }
 
@@ -102,6 +118,179 @@
   --destructive: 0 100% 50%;
   --destructive-foreground: 0 0% 100%;
   --bubble: 0 0% 0%;
+}
+
+/* MARDI GOLD DARK THEME - Amber dark theme */
+[data-theme="mardi-gold-dark"] {
+  /* Core palette */
+  --background: 0 0% 0%;
+  --foreground: 0 0% 100%;
+
+  /* Amber = hsl(41 46% 69%) ≈ #d4bd8c */
+  --primary: 41 46% 69%;
+  --primary-foreground: 0 0% 0%;
+  --accent: 41 46% 69%;
+  --accent-foreground: 0 0% 0%;
+  --ring: 41 46% 69%;
+
+  /* Surfaces */
+  --card: 0 0% 5%;
+  --card-foreground: 0 0% 100%;
+  --popover: 0 0% 5%;
+  --popover-foreground: 0 0% 100%;
+  --muted: 0 0% 12%;
+  --muted-foreground: 0 0% 65%;
+  --secondary: 0 0% 10%;
+  --secondary-foreground: 0 0% 100%;
+
+  /* Borders / inputs */
+  --border: 0 0% 20%;
+  --input: 0 0% 15%;
+
+  /* Sidebar */
+  --sidebar-background: 0 0% 3%;
+  --sidebar-foreground: 0 0% 90%;
+  --sidebar-primary: 41 46% 69%;
+  --sidebar-primary-foreground: 0 0% 0%;
+  --sidebar-accent: 0 0% 10%;
+  --sidebar-accent-foreground: 0 0% 90%;
+  --sidebar-border: 0 0% 20%;
+  --sidebar-ring: 41 46% 69%;
+
+  /* Custom theme vars (match your schema) */
+  --bg-primary: 0 0% 0%;
+  --bg-secondary: 0 0% 4%;
+  --bg-tertiary: 0 0% 7%;
+  --bg-hover: 0 0% 10%;
+  --bg-active: 0 0% 13%;
+
+  --text-primary: 0 0% 100%;
+  --text-secondary: 0 0% 80%;
+  --text-muted: 0 0% 53%;
+
+  --accent-primary: 41 46% 69%;
+  --accent-secondary: 41 46% 59%;
+  --border-custom: 0 0% 20%;
+  --border-light: 0 0% 16%;
+
+  --shadow: 0 0% 100% / 0.10;
+  --shadow-heavy: 0 0% 100% / 0.20;
+
+  /* Status (unchanged) */
+  --success: 120 100% 50%;
+  --warning: 60 100% 50%;
+  --danger: 0 100% 50%;
+  --info: 180 100% 50%;
+
+  /* Theme accents */
+  --theme-primary: 41 46% 69%;
+  --theme-accent: 41 46% 79%;
+
+  /* Bubbles & gradients */
+  --bubble: 0 0% 0%;
+  --assistant-bubble-border: 1px solid hsl(var(--border-custom));
+  --gradient-primary: linear-gradient(135deg, hsl(var(--bg-primary)) 0%, hsl(var(--bg-hover)) 100%);
+  --gradient-accent: linear-gradient(135deg, hsl(var(--theme-primary)) 0%, hsl(var(--theme-accent)) 100%);
+
+  /* Modals */
+  --modal-bg: hsl(var(--bg-secondary));
+  --modal-radius: 16px;
+  --modal-mobile-radius: 0;
+
+  /* Destructive stays red */
+  --destructive: 0 100% 50%;
+  --destructive-foreground: 0 0% 100%;
+}
+
+/* MARDI GOLD LIGHT THEME - Amber light theme */
+[data-theme="mardi-gold-light"] {
+  /* Core palette */
+  --background: 0 0% 100%;
+  --foreground: 0 0% 0%;
+
+  --primary: 41 46% 38%;
+  --primary-foreground: 0 0% 100%;
+  --accent: 41 46% 46%;
+  --accent-foreground: 0 0% 100%;
+  --ring: 41 46% 38%;
+
+  /* Surfaces */
+  --card: 0 0% 96%;
+  --card-foreground: 0 0% 4%;
+  --popover: 0 0% 96%;
+  --popover-foreground: 0 0% 4%;
+  --muted: 0 0% 88%;
+  --muted-foreground: 0 0% 35%;
+  --secondary: 0 0% 82%;
+  --secondary-foreground: 0 0% 4%;
+
+  /* Borders / inputs */
+  --border: 0 0% 80%;
+  --input: 0 0% 88%;
+
+  /* Sidebar */
+  --sidebar-background: 0 0% 95%;
+  --sidebar-foreground: 0 0% 4%;
+  --sidebar-primary: 41 46% 38%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 0 0% 85%;
+  --sidebar-accent-foreground: 0 0% 4%;
+  --sidebar-border: 0 0% 80%;
+  --sidebar-ring: 41 46% 38%;
+
+  /* Custom theme vars (match your schema) */
+  --bg-primary: 0 0% 100%;
+  --bg-secondary: 0 0% 96%;
+  --bg-tertiary: 0 0% 88%;
+  --bg-hover: 0 0% 82%;
+  --bg-active: 0 0% 75%;
+
+  --text-primary: 0 0% 4%;
+  --text-secondary: 0 0% 20%;
+  --text-muted: 0 0% 40%;
+
+  --accent-primary: 41 46% 38%;
+  --accent-secondary: 41 46% 46%;
+  --border-custom: 0 0% 80%;
+  --border-light: 0 0% 82%;
+
+  --shadow: 0 0% 0% / 0.10;
+  --shadow-heavy: 0 0% 0% / 0.20;
+
+  /* Status (unchanged) */
+  --success: 120 100% 50%;
+  --warning: 60 100% 50%;
+  --danger: 0 100% 50%;
+  --info: 180 100% 50%;
+
+  /* Theme accents */
+  --theme-primary: 41 46% 46%;
+  --theme-accent: 41 46% 56%;
+
+  /* Bubbles & gradients */
+  --bubble: 0 0% 100%;
+  --assistant-bubble-border: 1px solid hsl(var(--border-custom));
+  --gradient-primary: linear-gradient(135deg, hsl(var(--bg-primary)) 0%, hsl(var(--bg-hover)) 100%);
+  --gradient-accent: linear-gradient(135deg, hsl(var(--theme-primary)) 0%, hsl(var(--theme-accent)) 100%);
+
+  /* Modals */
+  --modal-bg: hsl(var(--bg-secondary));
+  --modal-radius: 16px;
+  --modal-mobile-radius: 0;
+
+  /* Destructive stays red */
+  --destructive: 0 100% 50%;
+  --destructive-foreground: 0 0% 100%;
+}
+
+/* Optional: utility tokens for hover/active states (pulling from the amber ramp) */
+:root,
+[data-theme="mardi-gold-dark"],
+[data-theme="mardi-gold-light"] {
+  --amber-700: 41 46% 59%;
+  --amber-800: 41 46% 49%;
+  --amber-600: 41 46% 46%;
+  --amber-500: 41 46% 38%;
 }
 
 /* DEFAULT LIGHT THEME - White */
