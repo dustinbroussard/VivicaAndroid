@@ -16,7 +16,7 @@ public class MainActivity extends BridgeActivity {
     // Set an initial status bar color. The web app updates this dynamically
     // to match the active theme via the Capacitor StatusBar plugin.
     Window window = getWindow();
-    int statusBarColor = ContextCompat.getColor(this, R.color.status_bar_color);
+    int statusBarColor = ContextCompat.getColor(this, R.color.statusbar_color);
     window.setStatusBarColor(statusBarColor);
 
     // Ensure status bar icons contrast against the background color
