@@ -71,11 +71,15 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
       try {
         const rootStyles = getComputedStyle(document.documentElement);
         const hsl = rootStyles.getPropertyValue('--background').trim();
-        const [h, s, l] = hsl.split(/\s+/).map(v => parseFloat(v.replace('%', '')));
-        const hex = hslToHex(h, s, l);
+        let hex = variant === 'dark' ? '#000000' : '#ffffff';
+        if (hsl) {
+          const parts = hsl.split(/\s+/).map(v => parseFloat(v.replace('%', '')));
+          if (parts.length === 3 && parts.every(n => !isNaN(n))) {
+            hex = hslToHex(parts[0], parts[1], parts[2]);
+          }
+        }
         await StatusBar.setBackgroundColor({ color: hex });
-        const isLight = l > 50;
-        await StatusBar.setStyle({ style: isLight ? Style.Dark : Style.Light });
+        await StatusBar.setStyle({ style: variant === 'dark' ? Style.Light : Style.Dark });
       } catch {
         // Ignore errors when StatusBar plugin is unavailable
       }
