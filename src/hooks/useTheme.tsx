@@ -5,22 +5,10 @@ import {
   createContext,
   useContext,
 } from 'react';
-import { StatusBar, Style } from '@capacitor/status-bar';
 import { Capacitor } from '@capacitor/core';
 import { Storage, DebouncedStorage, STORAGE_KEYS } from '@/utils/storage';
 import { useDynamicTheme } from '@/hooks/useDynamicTheme';
-
-const hslToHex = (h: number, s: number, l: number) => {
-  s /= 100;
-  l /= 100;
-  const k = (n: number) => (n + h / 30) % 12;
-  const a = s * Math.min(l, 1 - l);
-  const f = (n: number) =>
-    Math.round((l - a * Math.max(-1, Math.min(Math.min(k(n) - 3, 9 - k(n)), 1))) * 255)
-      .toString(16)
-      .padStart(2, '0');
-  return `#${f(0)}${f(8)}${f(4)}`;
-};
+import { applyStatusBarTheme, ThemeFamily, ThemeKey } from '@/lib/statusBar';
 
 export type ThemeVariant = 'dark' | 'light';
 export type ThemeColor =
@@ -66,22 +54,17 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   }, [color, variant]);
 
   useEffect(() => {
-    const applyStatusBar = async () => {
-      if (!Capacitor.isNativePlatform()) return;
-      try {
-        const rootStyles = getComputedStyle(document.documentElement);
-        const hsl = rootStyles.getPropertyValue('--background').trim();
-        const [h, s, l] = hsl.split(/\s+/).map(v => parseFloat(v.replace('%', '')));
-        const hex = hslToHex(h, s, l);
-        await StatusBar.setBackgroundColor({ color: hex });
-        const isLight = l > 50;
-        await StatusBar.setStyle({ style: isLight ? Style.Dark : Style.Light });
-      } catch {
-        // Ignore errors when StatusBar plugin is unavailable
-      }
-    };
-    applyStatusBar();
-  }, [color, variant, currentMood]);
+    if (!Capacitor.isNativePlatform()) return;
+    const family: ThemeFamily =
+      color === 'red' ||
+      color === 'blue' ||
+      color === 'green' ||
+      color === 'purple'
+        ? color
+        : 'default';
+    const themeKey = `${family}-${variant}` as ThemeKey;
+    applyStatusBarTheme(themeKey).catch(() => {});
+  }, [color, variant]);
 
   useDynamicTheme(currentMood, variant, color === 'ai-choice');
 
