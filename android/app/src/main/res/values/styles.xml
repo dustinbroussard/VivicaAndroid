@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="AppTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <item name="android:statusBarColor">@color/statusbar_color</item>
-        <!-- true = dark icons (use when statusbar_color is light) -->
-        <item name="android:windowLightStatusBar">false</item>
+        <!-- Will be transparent by default -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <!-- Use system bars behavior -->
+        <item name="android:windowLightStatusBar">?android:attr/windowLightStatusBar</item>
+        <item name="android:windowDecorFitsSystemWindows">false</item>
     </style>
 
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
