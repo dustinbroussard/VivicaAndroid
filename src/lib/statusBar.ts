@@ -12,7 +12,7 @@ function isDarkBg(hex: string): boolean {
   return L < 0.5
 }
 
-export type ThemeFamily = 'default' | 'red' | 'blue' | 'green' | 'purple'
+export type ThemeFamily = 'default' | 'red' | 'blue' | 'green' | 'purple' | 'mardi-gold'
 export type ThemeMode = 'light' | 'dark'
 export type ThemeKey = `${ThemeFamily}-${ThemeMode}`
 
@@ -33,6 +33,9 @@ const STATUSBAR_BG: Record<ThemeKey, string> = {
   // Purple
   'purple-dark': '#0B0512',
   'purple-light': '#EEDDF5',
+  // Mardi Gold (Amber)
+  'mardi-gold-dark': '#8D7134',
+  'mardi-gold-light': '#F3ECDD',
 }
 
 /** Apply status bar based on your theme key */
