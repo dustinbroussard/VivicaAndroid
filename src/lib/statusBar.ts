@@ -47,5 +47,6 @@ export async function applyStatusBarTheme(theme: ThemeKey) {
 
   // icon color chosen from background luminance
   const useLightIcons = isDarkBg(color)
-  await StatusBar.setStyle({ style: useLightIcons ? Style.Light : Style.Dark })
+  // Capacitor uses Style.Dark for light content (white icons)
+  await StatusBar.setStyle({ style: useLightIcons ? Style.Dark : Style.Light })
 }
