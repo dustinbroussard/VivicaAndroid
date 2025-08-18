@@ -169,7 +169,8 @@ export class ChatService {
       });
 
       if (!response.ok) {
-        throw new Error(await response.text());
+        const text = await response.text();
+        throw new Error(`HTTP ${response.status}: ${text}`);
       }
       return response;
     } catch (error) {
@@ -274,9 +275,16 @@ export class ChatService {
 
         return response;
       } catch (error) {
-        this.trackKeyUsage(key, false);
-        ChatService.setCooldown(key);
-        lastError = error as Error;
+        const err = error as Error;
+        const msg = err.message.toLowerCase();
+        // Only penalize keys for auth or rate limit errors
+        if (msg.includes('401') || msg.includes('unauthorized') || msg.includes('rate limit') || msg.includes('429')) {
+          this.trackKeyUsage(key, false);
+          ChatService.setCooldown(key);
+        } else {
+          console.warn(`Transient error with key ${key.slice(-4)}:`, err);
+        }
+        lastError = err;
         if (attempt === usableKeys.length - 1) break;
       }
     }

@@ -1,4 +1,4 @@
-import { ChatMessage } from "@/services/chatService";
+import { ChatMessage, ChatService } from "@/services/chatService";
 import { toast } from "sonner";
 import {
   saveMemoryToDb,
@@ -137,24 +137,15 @@ export async function saveConversationMemory(
   `;
 
   try {
-    // TODO: refactor to use ChatService so we get API key fallback and telemetry
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: 'system', content: 'You are Vivica, summarizing conversations concisely.' },
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0.3 // Lower temp for more factual summaries
-      })
+    const chatService = new ChatService(apiKey);
+    const data = await chatService.sendMessageJson<{ choices: { message: { content?: string } }[] }>({
+      model,
+      messages: [
+        { role: 'system', content: 'You are Vivica, summarizing conversations concisely.' },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.3 // Lower temp for more factual summaries
     });
-
-    const data = await response.json();
     const summary = data.choices?.[0]?.message?.content?.trim();
 
     if (!summary) {
