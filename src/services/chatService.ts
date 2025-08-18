@@ -155,7 +155,10 @@ export class ChatService {
     }
   }
 
-  private async trySendWithKey(request: ChatRequest, apiKey: string): Promise<Response> {
+  private async trySendWithKey(
+    request: Omit<ChatRequest, 'profile' | 'isCodeRequest'>,
+    apiKey: string
+  ): Promise<Response> {
     try {
       const response = await fetch(`${this.baseUrl}/chat/completions`, {
         method: 'POST',
@@ -169,7 +172,14 @@ export class ChatService {
       });
 
       if (!response.ok) {
-        throw new Error(await response.text());
+        let message: string;
+        try {
+          const err = await response.json();
+          message = err?.error?.message || JSON.stringify(err);
+        } catch {
+          message = await response.text();
+        }
+        throw new Error(`${response.status}: ${message}`);
       }
       return response;
     } catch (error) {
@@ -194,13 +204,14 @@ export class ChatService {
       ? request.profile.codeModel 
       : request.model;
 
+    const { profile: _profile, isCodeRequest: _isCodeRequest, ...apiRequest } = {
+      ...request,
+      model: effectiveModel,
+    };
+
     console.log('Sending request to OpenRouter:', {
       url: `${this.baseUrl}/chat/completions`,
-      request: {
-        ...request,
-        model: effectiveModel,
-        isCodeRequest: isCode
-      }
+      request: apiRequest
     });
 
     // Get all API keys from storage - constructor key first, then settings keys
@@ -254,7 +265,7 @@ export class ChatService {
           await new Promise(resolve => setTimeout(resolve, 300));
         }
 
-        const response = await this.trySendWithKey(request, key);
+        const response = await this.trySendWithKey(apiRequest, key);
         this.trackKeyUsage(key, true);
         ChatService.setActiveKey(key);
         ChatService.clearCooldown(key);
