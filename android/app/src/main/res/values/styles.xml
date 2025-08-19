@@ -5,7 +5,6 @@
         <item name="android:statusBarColor">@color/statusbar_color</item>
         <!-- Light mode starts with dark icons for readability -->
         <item name="android:windowLightStatusBar">true</item>
-        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
         <item name="android:fitsSystemWindows">false</item>
     </style>
 

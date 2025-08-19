@@ -4,6 +4,8 @@
         <!-- Dark theme specific overrides -->
         <item name="android:statusBarColor">@color/statusbar_color</item>
         <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
         <item name="android:fitsSystemWindows">false</item>
     </style>
 </resources>
+
