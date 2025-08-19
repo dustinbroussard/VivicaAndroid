@@ -2,7 +2,7 @@
 <resources>
     <style name="AppTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <!-- Default fallback color; JS/Capacitor will update dynamically -->
-        <item name="android:statusBarColor">@color/statusbar_color</item>
+        <item name="android:statusBarColor">@color/status_bar_light</item>
         <!-- Light mode starts with dark icons for readability -->
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:fitsSystemWindows">false</item>
