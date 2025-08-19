@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="AppTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <!-- Will be transparent by default -->
-        <item name="android:statusBarColor">@android:color/transparent</item>
-        <!-- Use system bars behavior -->
-        <item name="android:windowLightStatusBar">?android:attr/windowLightStatusBar</item>
+        <!-- Default fallback color; JS/Capacitor will update dynamically -->
+        <item name="android:statusBarColor">@color/statusbar_color</item>
+        <!-- Start with light icons to ensure contrast -->
+        <item name="android:windowLightStatusBar">false</item>
         <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
         <item name="android:fitsSystemWindows">false</item>
     </style>
