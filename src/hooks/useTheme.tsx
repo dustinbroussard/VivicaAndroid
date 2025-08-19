@@ -6,7 +6,7 @@ import {
   useContext,
 } from 'react';
 import { Capacitor } from '@capacitor/core';
-import { applyStatusBarTheme, ThemeKey, STATUSBAR_BG } from '@/lib/statusBar';
+import { applyStatusBarTheme, ThemeKey, STATUSBAR_BG } from '@/lib/statusBarService';
 import { Storage, DebouncedStorage, STORAGE_KEYS } from '@/utils/storage';
 import { useDynamicTheme } from '@/hooks/useDynamicTheme';
 
@@ -59,8 +59,10 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Update PWA status bar color
     const meta = document.querySelector('meta[name="theme-color"]');
+    const barColor =
+      STATUSBAR_BG[themeKey] ?? (variant === 'light' ? '#FFFFFF' : '#000000');
     if (meta) {
-      meta.setAttribute('content', STATUSBAR_BG[themeKey] ?? '#000000');
+      meta.setAttribute('content', barColor);
     }
 
     if (Capacitor.isNativePlatform()) {

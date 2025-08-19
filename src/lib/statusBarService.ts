@@ -12,7 +12,7 @@ function isDarkBg(hex: string): boolean {
   return L < 0.5
 }
 
-export type ThemeFamily = 'default' | 'red' | 'blue' | 'green' | 'purple'
+export type ThemeFamily = 'default' | 'red' | 'blue' | 'green' | 'purple' | 'mardi-gold'
 export type ThemeMode = 'light' | 'dark'
 export type ThemeKey = `${ThemeFamily}-${ThemeMode}`
 
@@ -40,7 +40,8 @@ export const STATUSBAR_BG: Record<ThemeKey, string> = {
 
 /** Apply status bar based on your theme key */
 export async function applyStatusBarTheme(theme: ThemeKey) {
-  const color = STATUSBAR_BG[theme] ?? '#000000'
+  const color =
+    STATUSBAR_BG[theme] ?? (theme.endsWith('-light') ? '#FFFFFF' : '#000000')
 
   // keep content below the status bar (no overlap surprises)
   await StatusBar.setOverlaysWebView({ overlay: false })
