@@ -3,8 +3,14 @@ export function getPrimaryApiKey(): string {
   if (direct) return direct;
   try {
     const settings = JSON.parse(localStorage.getItem('vivica-settings') || '{}');
-    return settings.apiKey1 || settings.apiKey2 || settings.apiKey3 || '';
+    return (
+      settings.apiKey1 ||
+      settings.apiKey2 ||
+      settings.apiKey3 ||
+      import.meta.env.VITE_API_KEY ||
+      ''
+    );
   } catch {
-    return '';
+    return import.meta.env.VITE_API_KEY || '';
   }
 }

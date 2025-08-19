@@ -30,7 +30,8 @@ export const useOpenRouterModels = () => {
     const fetchModels = async () => {
       try {
         setLoading(true);
-        const response = await fetch('https://openrouter.ai/api/v1/models');
+        const base = import.meta.env.VITE_API_URL || 'https://openrouter.ai/api/v1';
+        const response = await fetch(`${base}/models`);
         
         if (!response.ok) {
           throw new Error('Failed to fetch models');
