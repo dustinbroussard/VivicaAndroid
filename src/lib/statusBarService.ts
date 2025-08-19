@@ -1,3 +1,4 @@
+import { Capacitor } from '@capacitor/core';
 import { StatusBar, Style } from '@capacitor/status-bar';
 
 function hslToHex(hsl: string): string | null {
@@ -50,19 +51,24 @@ function getColors(): { bg: string | null; text: string | null } {
   return { bg, text };
 }
 
-export function getStatusBarColor(variant: 'light' | 'dark'): string {
-  const { bg } = getColors();
-  return bg ?? (variant === 'dark' ? '#000000' : '#FFFFFF');
-}
-
 export async function applyStatusBarTheme(variant: 'light' | 'dark') {
   const { bg, text } = getColors();
   const background = bg ?? (variant === 'dark' ? '#000000' : '#FFFFFF');
   const foreground = text ?? (variant === 'dark' ? '#FFFFFF' : '#000000');
 
-  await StatusBar.setOverlaysWebView({ overlay: false });
-  await StatusBar.setBackgroundColor({ color: background });
+  // Update PWA/browser theme color
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) {
+    meta.setAttribute('content', background);
+  }
 
-  const style = getLuminance(foreground) > 0.5 ? Style.Dark : Style.Light;
-  await StatusBar.setStyle({ style });
+  if (Capacitor.isNativePlatform()) {
+    await StatusBar.setOverlaysWebView({ overlay: false });
+    await StatusBar.setBackgroundColor({ color: background });
+
+    // Choose icon style to match the computed text color. Lighter text requires
+    // light icons, darker text requires dark icons.
+    const style = getLuminance(foreground) > 0.5 ? Style.Light : Style.Dark;
+    await StatusBar.setStyle({ style });
+  }
 }
