@@ -1,9 +1,10 @@
 package com.my.vivica;
 
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.view.Window;
 import androidx.core.content.ContextCompat;
-import androidx.core.graphics.ColorUtils;
+import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.BridgeActivity;
 
@@ -12,17 +13,26 @@ public class MainActivity extends BridgeActivity {
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+    applyStatusBarColor();
+  }
 
-    // Set an initial status bar color. The web app updates this dynamically
-    // to match the active theme via the Capacitor StatusBar plugin.
+  @Override
+  protected void onResume() {
+    super.onResume();
+    applyStatusBarColor();
+  }
+
+  private void applyStatusBarColor() {
     Window window = getWindow();
-    int statusBarColor = ContextCompat.getColor(this, R.color.statusbar_color);
+    boolean isNight =
+        (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
+            == Configuration.UI_MODE_NIGHT_YES;
+    int colorRes = isNight ? R.color.status_bar_dark : R.color.status_bar_light;
+    int statusBarColor = ContextCompat.getColor(this, colorRes);
     window.setStatusBarColor(statusBarColor);
 
-    // Ensure status bar icons contrast against the background color
     WindowInsetsControllerCompat controller =
-        new WindowInsetsControllerCompat(window, window.getDecorView());
-    boolean isLight = ColorUtils.calculateLuminance(statusBarColor) > 0.5;
-    controller.setAppearanceLightStatusBars(isLight);
+        WindowCompat.getInsetsController(window, window.getDecorView());
+    controller.setAppearanceLightStatusBars(!isNight);
   }
 }
