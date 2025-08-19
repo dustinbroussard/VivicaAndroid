@@ -39,7 +39,7 @@ export class ChatService {
   private apiKey: string;
   // apiKeyList is unused; keep until multi-key refactor
   private apiKeyList: string[];
-  private baseUrl = 'https://openrouter.ai/api/v1';
+  private baseUrl: string;
   private telemetry = {
     keyUsage: {} as Record<string, {success: number; failures: number; cooldownUntil?: number}>,
     lastUsedKey: '',
@@ -52,8 +52,10 @@ export class ChatService {
   // Track temporarily failing keys to avoid retrying them repeatedly
   private static keyCooldowns: Record<string, number> = {};
 
-  constructor(apiKey: string) {
-    this.apiKey = apiKey;
+  constructor(apiKey?: string, apiUrl?: string) {
+    this.apiKey = apiKey || import.meta.env.VITE_API_KEY || '';
+    this.apiKeyList = [];
+    this.baseUrl = apiUrl || import.meta.env.VITE_API_URL || 'https://openrouter.ai/api/v1';
     this.initKeyTelemetry();
   }
 

@@ -4,6 +4,9 @@ const config: CapacitorConfig = {
   appId: 'com.my.vivica',
   appName: 'vivica',
   webDir: 'dist',
+  server: {
+    androidScheme: 'https',
+  },
   plugins: {
     StatusBar: {
       style: 'DEFAULT',
