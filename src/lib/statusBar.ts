@@ -17,7 +17,7 @@ export type ThemeMode = 'light' | 'dark'
 export type ThemeKey = `${ThemeFamily}-${ThemeMode}`
 
 /** Pick your exact status bar background per theme variant */
-const STATUSBAR_BG: Record<ThemeKey, string> = {
+export const STATUSBAR_BG: Record<ThemeKey, string> = {
   // Default (Black / White)
   'default-dark': '#000000',
   'default-light': '#FFFFFF',
@@ -33,6 +33,9 @@ const STATUSBAR_BG: Record<ThemeKey, string> = {
   // Purple
   'purple-dark': '#0B0512',
   'purple-light': '#EEDDF5',
+  // Mardi Gold
+  'mardi-gold-dark': '#4A3C1C',
+  'mardi-gold-light': '#EEE6D2',
 }
 
 /** Apply status bar based on your theme key */
