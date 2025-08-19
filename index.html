@@ -23,38 +23,18 @@
     <!-- Set initial status bar theme color based on saved theme -->
     <script>
       (function () {
-        const STATUSBAR_BG = {
-          'default-dark': '#000000',
-          'default-light': '#FFFFFF',
-          'red-dark': '#7A0E1B',
-          'red-light': '#FFD5D9',
-          'blue-dark': '#0A1C3A',
-          'blue-light': '#DDE9FF',
-          'green-dark': '#0F2D1E',
-          'green-light': '#D8F5E3',
-          'purple-dark': '#0B0512',
-          'purple-light': '#EEDDF5',
-          'mardi-gold-dark': '#4A3C1C',
-          'mardi-gold-light': '#EEE6D2'
-        };
-
         const metaThemeColor = document.querySelector('meta[name="theme-color"]');
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+        let variant = prefersDark.matches ? 'dark' : 'light';
 
-        function getThemeKey() {
-          try {
-            const stored = JSON.parse(localStorage.getItem('vivica-theme') || '{}');
-            const family = stored.color && stored.color !== 'ai-choice' ? stored.color : 'default';
-            const variant = stored.variant || (prefersDark.matches ? 'dark' : 'light');
-            return `${family}-${variant}`;
-          } catch {
-            return prefersDark.matches ? 'default-dark' : 'default-light';
+        try {
+          const stored = JSON.parse(localStorage.getItem('vivica-theme') || '{}');
+          if (stored.variant === 'dark' || stored.variant === 'light') {
+            variant = stored.variant;
           }
-        }
+        } catch {}
 
-        const key = getThemeKey();
-        const color = STATUSBAR_BG[key] || (prefersDark.matches ? '#000000' : '#FFFFFF');
-        metaThemeColor.setAttribute('content', color);
+        metaThemeColor.setAttribute('content', variant === 'dark' ? '#000000' : '#FFFFFF');
       })();
     </script>
   </head>
