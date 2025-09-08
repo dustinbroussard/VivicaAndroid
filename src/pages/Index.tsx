@@ -208,6 +208,7 @@ const Index = () => {
           id: '2',
           name: 'Creative Writer',
           model: 'gpt-4',
+          fallbackModel: 'meta-llama/llama-3.3-70b-instruct:free',
           systemPrompt:
             'You are a creative writing assistant specializing in storytelling and creative content.',
           temperature: 0.9,

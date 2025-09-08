@@ -86,6 +86,158 @@
   }
 }
 
+/* MARDI GRAS — DARK (club stage) */
+[data-theme="mardi-gras-dark"] {
+  /* Core */
+  --background: 0 0% 4%;
+  --foreground: 54 97% 88%;
+
+  --primary: 280 100% 30%;
+  --primary-foreground: 0 0% 0%;
+
+  --accent: 36 91% 50%;
+  --accent-foreground: 0 0% 0%;
+
+  --ring: 36 91% 50%;
+
+  /* Surfaces */
+  --card: 0 0% 7%;
+  --card-foreground: 54 97% 88%;
+  --popover: 0 0% 7%;
+  --popover-foreground: 54 97% 88%;
+  --muted: 0 0% 12%;
+  --muted-foreground: 0 0% 70%;
+  --secondary: 0 0% 10%;
+  --secondary-foreground: 54 97% 88%;
+
+  /* Borders / inputs */
+  --border: 0 0% 20%;
+  --input: 0 0% 14%;
+
+  /* Sidebar */
+  --sidebar-background: 0 0% 3%;
+  --sidebar-foreground: 54 97% 88%;
+  --sidebar-primary: 36 91% 50%;
+  --sidebar-primary-foreground: 0 0% 0%;
+  --sidebar-accent: 0 0% 10%;
+  --sidebar-accent-foreground: 54 97% 88%;
+  --sidebar-border: 0 0% 18%;
+  --sidebar-ring: 36 91% 50%;
+
+  /* Custom tokens */
+  --bg-primary: 0 0% 4%;
+  --bg-secondary: 150 40% 12%;
+  --bg-tertiary: 0 0% 10%;
+  --bg-hover: 0 0% 13%;
+  --bg-active: 0 0% 16%;
+
+  --text-primary: 54 97% 88%;
+  --text-secondary: 0 0% 80%;
+  --text-muted: 0 0% 60%;
+
+  --accent-primary: 36 91% 50%;
+  --accent-secondary: 160 84% 39%;
+  --border-custom: 0 0% 20%;
+  --border-light: 0 0% 16%;
+
+  --success: 160 84% 39%;
+  --warning: 36 91% 50%;
+  --danger: 0 100% 50%;
+  --info: 292 100% 30%;
+
+  --theme-primary: 292 100% 30%;
+  --theme-accent: 36 91% 50%;
+
+  --bubble: 300 10% 100%;
+  --assistant-bubble-border: 1px solid hsl(var(--border-custom));
+
+  /* Brand neon + gradients */
+  --gradient-primary: linear-gradient(135deg,
+      hsl(239 84% 67%) 0%,
+      hsl(36 91% 50%) 55%,
+      hsl(160 84% 39%) 100%);
+  --gradient-accent: linear-gradient(135deg,
+      hsl(var(--bg-primary)) 0%,
+      hsl(var(--bg-hover)) 100%);
+  --shadow: 0 0% 100% / 0.12;
+  --shadow-heavy: 0 0% 100% / 0.24;
+}
+
+/* MARDI GRAS — LIGHT (parade day) */
+[data-theme="mardi-gras-light"] {
+  /* Core */
+  --background: 0 0% 100%;
+  --foreground: 0 0% 10%;
+
+  --primary: 292 100% 30%;
+  --primary-foreground: 0 0% 100%;
+
+  --accent: 36 91% 45%;
+  --accent-foreground: 0 0% 100%;
+
+  --ring: 36 91% 45%;
+
+  /* Surfaces */
+  --card: 0 0% 96%;
+  --card-foreground: 0 0% 10%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 10%;
+  --muted: 0 0% 90%;
+  --muted-foreground: 0 0% 35%;
+  --secondary: 0 0% 88%;
+  --secondary-foreground: 0 0% 10%;
+
+  /* Borders / inputs */
+  --border: 0 0% 80%;
+  --input: 0 0% 90%;
+
+  /* Sidebar */
+  --sidebar-background: 0 0% 96%;
+  --sidebar-foreground: 0 0% 10%;
+  --sidebar-primary: 292 100% 30%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 0 0% 88%;
+  --sidebar-accent-foreground: 0 0% 10%;
+  --sidebar-border: 0 0% 82%;
+  --sidebar-ring: 36 91% 45%;
+
+  /* Custom tokens */
+  --bg-primary: 0 0% 100%;
+  --bg-secondary: 120 85% 96%;
+  --bg-tertiary: 0 0% 90%;
+  --bg-hover: 0 0% 88%;
+  --bg-active: 0 0% 84%;
+
+  --text-primary: 0 0% 10%;
+  --text-secondary: 0 0% 28%;
+  --text-muted: 0 0% 42%;
+
+  --accent-primary: 36 91% 45%;
+  --accent-secondary: 160 84% 39%;
+  --border-custom: 0 0% 80%;
+  --border-light: 0 0% 85%;
+
+  --success: 160 84% 32%;
+  --warning: 36 91% 45%;
+  --danger: 0 100% 45%;
+  --info: 292 100% 30%;
+
+  --theme-primary: 292 100% 30%;
+  --theme-accent: 36 91% 50%;
+
+  --bubble: 0 0% 100%;
+
+  --gradient-primary: linear-gradient(135deg,
+      hsl(292 100% 30%) 0%,
+      hsl(36 91% 50%) 55%,
+      hsl(160 84% 39%) 100%);
+  --gradient-accent: linear-gradient(135deg,
+      hsl(var(--bg-primary)) 0%,
+      hsl(var(--bg-hover)) 100%);
+  --shadow: 0 0% 0% / 0.10;
+  --shadow-heavy: 0 0% 0% / 0.22;
+}
+
 /* DEFAULT DARK THEME - Black */
 [data-theme="default-dark"] {
   --bg-primary: 0 0% 0%;
@@ -955,4 +1107,3 @@ html:not(.dark) .message-bubble.user {
   color: hsl(var(--bubble)) !important;
   background: hsl(var(--primary));
 }
-

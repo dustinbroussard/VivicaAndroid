@@ -10,7 +10,8 @@ export type ThemeColor =
   | 'red'
   | 'green'
   | 'purple'
-  | 'mardi-gold';
+  | 'mardi-gold'
+  | 'mardi-gras';
 
 // Add a toggleVariant function for compatibility
 interface ThemeContextValue {
@@ -30,7 +31,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const [variant, setVariant] = useState<ThemeVariant>('dark');
 
   const isValidColor = (c: string): c is ThemeColor =>
-    ['default', 'blue', 'red', 'green', 'purple', 'mardi-gold'].includes(c);
+    ['default', 'blue', 'red', 'green', 'purple', 'mardi-gold', 'mardi-gras'].includes(c);
 
   useEffect(() => {
     const saved = Storage.get(STORAGE_KEYS.THEME, { color: 'default' as ThemeColor, variant: 'dark' as ThemeVariant });
