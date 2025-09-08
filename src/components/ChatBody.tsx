@@ -64,6 +64,7 @@ interface Conversation {
 interface ProfileBrief {
   isVivica?: boolean;
   model: string;
+  fallbackModel?: string;
   systemPrompt: string;
   temperature: number;
 }
@@ -83,7 +84,7 @@ export const ChatBody = forwardRef<HTMLDivElement, ChatBodyProps>(
   ({ conversation, currentProfile, isTyping, onRetryMessage, onRegenerateMessage, onEditMessage, onSendMessage, onNewChat }, ref) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const { color, variant } = useTheme();
-    const logoSrc = `/logo-${color === 'ai-choice' ? 'default' : color}${variant}.png`;
+    const logoSrc = `/logo-${color}${variant}.png`;
     const [welcomeMsg, setWelcomeMsg] = useState('');
     const [welcomeError, setWelcomeError] = useState(false);
     const [animateWelcome, setAnimateWelcome] = useState(false);
@@ -114,6 +115,13 @@ export const ChatBody = forwardRef<HTMLDivElement, ChatBodyProps>(
           messages: reqMessages,
           temperature: vivica.temperature,
           max_tokens: 60,
+          profile: {
+            model: vivica.model,
+            codeModel: vivica.model,
+            fallbackModel: vivica.fallbackModel,
+            temperature: vivica.temperature,
+            maxTokens: 60,
+          },
         });
         const data = await res.json();
         return data.choices?.[0]?.message?.content?.trim();

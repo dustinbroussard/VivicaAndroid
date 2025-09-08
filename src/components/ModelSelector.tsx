@@ -137,8 +137,14 @@ export const ModelSelector = ({ value, onValueChange, placeholder = "Select a mo
               overscrollBehavior: 'contain'
             }}
             onPointerDown={(e) => {
-              // Prevents closing when touch-scrolling 
-              e.preventDefault();
+              // Only intercept touch to prevent dropdown from closing while scrolling.
+              // Allow normal mouse interactions on desktop so clicks select items.
+              const pe = e as unknown as PointerEvent;
+              // @ts-ignore - React PointerEvent includes pointerType
+              const type = (e as any).pointerType || (pe && (pe as any).pointerType);
+              if (type === 'touch') {
+                e.preventDefault();
+              }
             }}
             onTouchStart={(e) => e.stopPropagation()}
           >

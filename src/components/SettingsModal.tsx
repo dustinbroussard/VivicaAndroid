@@ -16,7 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { ThemeSelector } from "./ThemeSelector";
 import { ApiKeyInput } from "./ApiKeyInput";
-import { DEFAULT_RSS_FEED } from "@/utils/constants";
+import { DEFAULT_RSS_FEEDS } from "@/utils/constants";
 import { clearAllConversationsFromDb } from "@/utils/indexedDb";
 
 interface SettingsModalProps {
@@ -30,7 +30,7 @@ export const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
     apiKey2: '',
     apiKey3: '',
     braveApiKey: localStorage.getItem('braveApiKey') || '',
-    rssFeeds: DEFAULT_RSS_FEED,
+    rssFeeds: DEFAULT_RSS_FEEDS.join(', '),
     includeWeather: false,
     includeRss: false,
   });

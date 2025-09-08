@@ -11,6 +11,7 @@ interface Profile {
   id: string;
   name: string;
   model: string;
+  fallbackModel?: string;
   codeModel?: string;
   systemPrompt: string;
   temperature: number;

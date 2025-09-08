@@ -29,6 +29,7 @@ interface Profile {
   id: string;
   name: string;
   model: string;
+  fallbackModel?: string;
   codeModel?: string;
   systemPrompt: string;
   temperature: number;
@@ -64,7 +65,6 @@ export const ProfilesModal = ({ isOpen, onClose }: ProfilesModalProps) => {
     { value: 'red', label: 'Red', color: '#ef4444' },
     { value: 'green', label: 'Green', color: '#10b981' },
     { value: 'purple', label: 'Purple', color: '#8b5cf6' },
-    { value: 'ai-choice', label: 'AI Choice', color: '#ffffff' },
   ];
 
   useEffect(() => {
@@ -91,6 +91,7 @@ export const ProfilesModal = ({ isOpen, onClose }: ProfilesModalProps) => {
           id: '2',
           name: 'Creative Writer',
           model: 'gpt-4',
+          fallbackModel: 'meta-llama/llama-3.3-70b-instruct:free',
           systemPrompt:
             'You are a creative writing assistant specializing in storytelling and creative content.',
           temperature: 0.9,
@@ -111,6 +112,7 @@ export const ProfilesModal = ({ isOpen, onClose }: ProfilesModalProps) => {
       id: Date.now().toString(),
       name: '',
       model: 'openai/gpt-3.5-turbo',
+      fallbackModel: 'meta-llama/llama-3.3-70b-instruct:free',
       codeModel: 'qwen/qwen-2.5-coder-32b-instruct:free',
       systemPrompt: '',
       temperature: 0.7,
@@ -322,6 +324,17 @@ export const ProfilesModal = ({ isOpen, onClose }: ProfilesModalProps) => {
                   setEditingProfile(prev => prev ? { ...prev, model: value } : null)
                 }
                 placeholder="Select an AI model"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="fallbackModel">Fallback Model (optional)</Label>
+              <ModelSelector
+                value={editingProfile?.fallbackModel || ''}
+                onValueChange={(value) =>
+                  setEditingProfile(prev => prev ? { ...prev, fallbackModel: value } : null)
+                }
+                placeholder="Select a fallback model (used if primary is unavailable)"
               />
             </div>
 

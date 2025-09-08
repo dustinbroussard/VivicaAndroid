@@ -1,13 +1,7 @@
 
-import {
-  useState,
-  useEffect,
-  createContext,
-  useContext,
-} from 'react';
+import { useState, useEffect, createContext, useContext } from 'react';
 import { applyStatusBarTheme } from '@/lib/statusBarService';
 import { Storage, DebouncedStorage, STORAGE_KEYS } from '@/utils/storage';
-import { useDynamicTheme } from '@/hooks/useDynamicTheme';
 
 export type ThemeVariant = 'dark' | 'light';
 export type ThemeColor =
@@ -16,17 +10,14 @@ export type ThemeColor =
   | 'red'
   | 'green'
   | 'purple'
-  | 'mardi-gold'
-  | 'ai-choice';
+  | 'mardi-gold';
 
 // Add a toggleVariant function for compatibility
 interface ThemeContextValue {
   color: ThemeColor;
   variant: ThemeVariant;
-  currentMood: string;
   setColor: (color: ThemeColor) => void;
   setVariant: (variant: ThemeVariant) => void;
-  setMood: (mood: string) => void;
   toggleVariant: () => void;
 }
 
@@ -37,16 +28,19 @@ const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const [color, setColor] = useState<ThemeColor>('default');
   const [variant, setVariant] = useState<ThemeVariant>('dark');
-  const [currentMood, setMood] = useState<string>('serene');
+
+  const isValidColor = (c: string): c is ThemeColor =>
+    ['default', 'blue', 'red', 'green', 'purple', 'mardi-gold'].includes(c);
 
   useEffect(() => {
     const saved = Storage.get(STORAGE_KEYS.THEME, { color: 'default' as ThemeColor, variant: 'dark' as ThemeVariant });
-    setColor(saved.color as ThemeColor);
+    // Sanitize legacy or unknown values (e.g., "ai-choice")
+    setColor(isValidColor(saved.color) ? saved.color : 'default');
     setVariant(saved.variant as ThemeVariant);
   }, []);
 
   useEffect(() => {
-    const themeAttr = `${color === 'ai-choice' ? 'default' : color}-${variant}`;
+    const themeAttr = `${color}-${variant}`;
     document.documentElement.setAttribute('data-theme', themeAttr);
     document.documentElement.classList.toggle('dark', variant === 'dark');
     DebouncedStorage.set(STORAGE_KEYS.THEME, { color, variant }, 300);
@@ -56,15 +50,13 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     applyStatusBarTheme(variant).catch(() => {});
   }, [color, variant]);
 
-  useDynamicTheme(currentMood, variant, color === 'ai-choice');
-
   const toggleVariant = () => {
     setVariant(variant === 'dark' ? 'light' : 'dark');
   };
 
   return (
     <ThemeContext.Provider
-      value={{ color, variant, currentMood, setColor, setVariant, setMood, toggleVariant }}
+      value={{ color, variant, setColor, setVariant, toggleVariant }}
     >
       {children}
     </ThemeContext.Provider>

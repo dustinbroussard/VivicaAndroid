@@ -18,6 +18,7 @@ export interface ChatRequest {
   profile?: {  // Include full profile for model routing
     model: string;
     codeModel: string;
+    fallbackModel?: string;
     temperature: number;
     maxTokens: number;
   };
@@ -193,113 +194,117 @@ export class ChatService {
   async sendMessage(request: ChatRequest): Promise<Response> {
     // Route to code model if this is a code request
     const isCode = request.isCodeRequest ?? this.isCodeRequest(request.messages);
-    const effectiveModel = isCode && request.profile?.codeModel 
-      ? request.profile.codeModel 
+    const primaryModel = isCode && request.profile?.codeModel
+      ? request.profile.codeModel
       : request.model;
 
-    console.log('Sending request to OpenRouter:', {
-      url: `${this.baseUrl}/chat/completions`,
-      request: {
-        ...request,
-        model: effectiveModel,
-        isCodeRequest: isCode
-      }
-    });
+    const fallbackModel = request.profile?.fallbackModel && request.profile.fallbackModel !== primaryModel
+      ? request.profile.fallbackModel
+      : undefined;
 
-    // Get all API keys from storage - constructor key first, then settings keys
-    const settings = JSON.parse(localStorage.getItem('vivica-settings') || '{}');
-    const keys = Array.from(new Set([
-      this.apiKey,
-      settings.apiKey1 || '',
-      settings.apiKey2 || '',
-      settings.apiKey3 || ''
-    ]
-      .map((k: string) => k.trim())
-      .filter(Boolean)))
-      .filter(k => !ChatService.isInCooldown(k));
+    const attemptWithModel = async (modelId: string): Promise<Response> => {
+      const sendReq: ChatRequest = { ...request, model: modelId };
 
-    if (keys.length === 0) {
-      throw new Error('No valid API keys available. Please check your settings.');
-    }
-
-    // Remove keys that are currently in cooldown
-    const usableKeys = keys.filter(k => !this.isKeyInCooldown(k));
-
-    if (usableKeys.length === 0) {
-      throw new Error('All API keys are temporarily disabled after recent failures.');
-    }
-
-    let lastError: Error | null = null;
-
-    // Only show visual feedback if we have multiple keys to try
-    const showRetryFeedback = usableKeys.length > 1;
-
-    // Determine starting key based on last success
-    const active = ChatService.loadActiveKey();
-    let startIndex = active ? usableKeys.indexOf(active) : -1;
-    if (startIndex === -1) {
-      startIndex = usableKeys.indexOf(this.apiKey);
-      if (startIndex === -1) startIndex = 0;
-    }
-
-    const rotate = (i: number) => (startIndex + i) % usableKeys.length;
-
-    // Try each key in order until one succeeds
-    for (let attempt = 0; attempt < usableKeys.length; attempt++) {
-      const idx = rotate(attempt);
-      const key = usableKeys[idx].trim();
-      try {
-        if (attempt > 0 && showRetryFeedback) {
-          toast.message(`Connecting with backup key ${attempt + 1}...`, {
-            duration: 1000,
-            position: 'bottom-center'
-          });
-          await new Promise(resolve => setTimeout(resolve, 300));
+      console.log('Sending request to OpenRouter:', {
+        url: `${this.baseUrl}/chat/completions`,
+        request: {
+          ...sendReq,
+          isCodeRequest: isCode
         }
+      });
 
-        const response = await this.trySendWithKey(request, key);
-        this.trackKeyUsage(key, true);
-        ChatService.setActiveKey(key);
-        ChatService.clearCooldown(key);
+      // Get all API keys from storage - constructor key first, then settings keys
+      const settings = JSON.parse(localStorage.getItem('vivica-settings') || '{}');
+      const keys = Array.from(new Set([
+        this.apiKey,
+        settings.apiKey1 || '',
+        settings.apiKey2 || '',
+        settings.apiKey3 || ''
+      ]
+        .map((k: string) => k.trim())
+        .filter(Boolean)))
+        .filter(k => !ChatService.isInCooldown(k));
 
-        if (attempt > 0) {
-          const feedback = showRetryFeedback ? 
-            toast.success(`Connected with backup key`, {
-              duration: 2000,
+      if (keys.length === 0) {
+        throw new Error('No valid API keys available. Please check your settings.');
+      }
+
+      // Remove keys that are currently in cooldown
+      const usableKeys = keys.filter(k => !this.isKeyInCooldown(k));
+
+      if (usableKeys.length === 0) {
+        throw new Error('All API keys are temporarily disabled after recent failures.');
+      }
+
+      let lastError: Error | null = null;
+      const showRetryFeedback = usableKeys.length > 1;
+
+      const active = ChatService.loadActiveKey();
+      let startIndex = active ? usableKeys.indexOf(active) : -1;
+      if (startIndex === -1) {
+        startIndex = usableKeys.indexOf(this.apiKey);
+        if (startIndex === -1) startIndex = 0;
+      }
+      const rotate = (i: number) => (startIndex + i) % usableKeys.length;
+
+      for (let attempt = 0; attempt < usableKeys.length; attempt++) {
+        const idx = rotate(attempt);
+        const key = usableKeys[idx].trim();
+        try {
+          if (attempt > 0 && showRetryFeedback) {
+            toast.message(`Connecting with backup key ${attempt + 1}...`, {
+              duration: 1000,
               position: 'bottom-center'
-            }) :
-            console.log(`Connected with backup key ${key.slice(-4)}`);
-        
-          // Exponential backoff logging
-          const backoff = Math.min(1000 * Math.pow(2, attempt), 8000);
-          console.debug(`API request succeeded after ${attempt} retries (next backoff: ${backoff}ms)`);
-        }
+            });
+            await new Promise(resolve => setTimeout(resolve, 300));
+          }
 
-        return response;
-      } catch (error) {
-        const err = error as Error;
-        const msg = err.message.toLowerCase();
-        // Only penalize keys for auth or rate limit errors
-        if (msg.includes('401') || msg.includes('unauthorized') || msg.includes('rate limit') || msg.includes('429')) {
-          this.trackKeyUsage(key, false);
-          ChatService.setCooldown(key);
-        } else {
-          console.warn(`Transient error with key ${key.slice(-4)}:`, err);
+          const response = await this.trySendWithKey(sendReq, key);
+          this.trackKeyUsage(key, true);
+          ChatService.setActiveKey(key);
+          ChatService.clearCooldown(key);
+
+          if (attempt > 0) {
+            showRetryFeedback
+              ? toast.success(`Connected with backup key`, { duration: 2000, position: 'bottom-center' })
+              : console.log(`Connected with backup key ${key.slice(-4)}`);
+            const backoff = Math.min(1000 * Math.pow(2, attempt), 8000);
+            console.debug(`API request succeeded after ${attempt} retries (next backoff: ${backoff}ms)`);
+          }
+
+          return response;
+        } catch (error) {
+          const err = error as Error;
+          const msg = err.message.toLowerCase();
+          if (msg.includes('401') || msg.includes('unauthorized') || msg.includes('rate limit') || msg.includes('429')) {
+            this.trackKeyUsage(key, false);
+            ChatService.setCooldown(key);
+          } else {
+            console.warn(`Transient error with key ${key.slice(-4)}:`, err);
+          }
+          lastError = err;
+          if (attempt === usableKeys.length - 1) break;
         }
-        lastError = err;
-        if (attempt === usableKeys.length - 1) break;
       }
-    }
 
-    // All attempts failed - format a helpful error message
-    const errorMsg = lastError?.message.includes('401') 
-      ? 'Invalid API key(s). Please check your settings.'
-      : lastError?.message.includes('rate limit')
-      ? 'Rate limits exceeded on all keys. Please upgrade your plan or try again later.'
-      : 'All API key attempts failed. Please check your connection and keys.';
-    
-    console.error('OpenRouter API failed after all attempts:', errorMsg);
-    throw new Error(errorMsg);
+      const errorMsg = lastError?.message.includes('401')
+        ? 'Invalid API key(s). Please check your settings.'
+        : lastError?.message.includes('rate limit')
+        ? 'Rate limits exceeded on all keys. Please upgrade your plan or try again later.'
+        : 'All API key attempts failed. Please check your connection and keys.';
+      console.error('OpenRouter API failed after all attempts:', errorMsg);
+      throw new Error(errorMsg);
+    };
+
+    try {
+      return await attemptWithModel(primaryModel);
+    } catch (e) {
+      if (fallbackModel) {
+        toast.message(`Primary model unavailable. Falling back to ${fallbackModel}`, { position: 'bottom-center' });
+        return await attemptWithModel(fallbackModel);
+      }
+      throw e;
+    }
   }
 
   async sendMessageJson<T = unknown>(request: ChatRequest): Promise<T> {

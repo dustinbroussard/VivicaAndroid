@@ -73,7 +73,8 @@ export class Storage {
     return {
       id: 'vivica',
       name: 'Vivica',
-      model: 'deepseek/deepseek-chat-v3-0324:free',
+      model: 'deepseek/deepseek-chat-v3.1:free',
+      fallbackModel: 'meta-llama/llama-3.3-70b-instruct:free',
       codeModel: 'qwen/qwen-2.5-coder-32b-instruct:free',
       systemPrompt: `Your name is Vivica.
 

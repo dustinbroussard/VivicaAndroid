@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { Loader2, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { fetchArticleText } from '@/services/rssService';
-import { DEFAULT_RSS_FEED, CORS_PROXY } from '@/utils/constants';
+import { DEFAULT_RSS_FEEDS, CORS_PROXY } from '@/utils/constants';
 
 interface Headline {
   title: string;
@@ -14,7 +14,7 @@ interface Headline {
   source?: string;
 }
 
-const DEFAULT_FEED = DEFAULT_RSS_FEED;
+const DEFAULT_FEEDS = DEFAULT_RSS_FEEDS;
 
 // Fetch RSS feeds via a CORS proxy and return basic info for each item.
 async function fetchRSSSummariesWithLinks(urls: string[]): Promise<Headline[]> {
@@ -78,18 +78,25 @@ export const RSSWidget = ({ onSendMessage, onNewChat }: RSSWidgetProps) => {
       setError('');
       const settings = Storage.get('vivica-settings', { rssFeeds: '' });
 
-      const feeds = settings.rssFeeds
+      const userFeeds = settings.rssFeeds
         ? settings.rssFeeds.split(',').map((s: string) => s.trim()).filter(Boolean)
-        : [DEFAULT_FEED];
+        : [];
+      const feeds = userFeeds.length ? userFeeds : DEFAULT_FEEDS;
       
       try {
-        const fetchedHeadlines = await fetchRSSSummariesWithLinks(feeds);
+        let fetchedHeadlines = await fetchRSSSummariesWithLinks(feeds);
+
+        // If user feeds produced nothing, try default fallbacks
+        if (fetchedHeadlines.length === 0 && userFeeds.length) {
+          fetchedHeadlines = await fetchRSSSummariesWithLinks(DEFAULT_FEEDS);
+        }
+
         setHeadlines(fetchedHeadlines);
-        
         if (fetchedHeadlines.length > 0) {
           setCurrentHeadline(fetchedHeadlines[0]);
         } else {
-          setError('No headlines found');
+          // As a last resort, do not show a scary error; just show nothing
+          setError('');
         }
       } catch (err) {
         console.error('Failed to load RSS feeds:', err);

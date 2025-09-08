@@ -81,6 +81,7 @@ interface Profile {
   id: string;
   name: string;
   model: string;
+  fallbackModel?: string;
   codeModel?: string;
   systemPrompt: string;
   temperature: number;
@@ -130,11 +131,14 @@ const Index = () => {
 
   const applyProfileTheme = (profile: Profile) => {
     if (profile.useProfileTheme && profile.themeColor && profile.themeVariant) {
-      setColor(profile.themeColor);
-      setVariant(profile.themeVariant);
+      // Sanitize legacy value "ai-choice" to default
+      const safeColor = (profile.themeColor === 'ai-choice' ? 'default' : profile.themeColor) as ThemeColor;
+      setColor(safeColor);
+      setVariant(profile.themeVariant as ThemeVariant);
     } else {
       const globalTheme = Storage.get(STORAGE_KEYS.THEME, { color: 'default', variant: 'dark' });
-      setColor(globalTheme.color as ThemeColor);
+      const safeColor = (globalTheme.color === 'ai-choice' ? 'default' : globalTheme.color) as ThemeColor;
+      setColor(safeColor);
       setVariant(globalTheme.variant as ThemeVariant);
     }
   };
@@ -591,6 +595,13 @@ const Index = () => {
           messages: chatMessages,
           temperature: currentProfile.temperature,
           max_tokens: currentProfile.maxTokens,
+          profile: {
+            model: currentProfile.model,
+            codeModel: currentProfile.codeModel || currentProfile.model,
+            fallbackModel: currentProfile.fallbackModel,
+            temperature: currentProfile.temperature,
+            maxTokens: currentProfile.maxTokens,
+          },
           tools: [BRAVE_SEARCH_TOOL],
           tool_choice: 'auto'
         });
@@ -615,7 +626,14 @@ const Index = () => {
             model: currentProfile.model,
             messages: chatMessages,
             temperature: currentProfile.temperature,
-            max_tokens: currentProfile.maxTokens
+            max_tokens: currentProfile.maxTokens,
+            profile: {
+              model: currentProfile.model,
+              codeModel: currentProfile.codeModel || currentProfile.model,
+              fallbackModel: currentProfile.fallbackModel,
+              temperature: currentProfile.temperature,
+              maxTokens: currentProfile.maxTokens,
+            },
           });
 
           const finalContent = finalData.choices?.[0]?.message?.content || '';
@@ -685,7 +703,14 @@ const Index = () => {
         temperature: currentProfile.temperature,
         max_tokens: currentProfile.maxTokens,
         stream: true,
-        isCodeRequest: isCodeReq
+        isCodeRequest: isCodeReq,
+        profile: {
+          model: currentProfile.model,
+          codeModel: currentProfile.codeModel || currentProfile.model,
+          fallbackModel: currentProfile.fallbackModel,
+          temperature: currentProfile.temperature,
+          maxTokens: currentProfile.maxTokens,
+        },
       });
       // TODO: if isCodeReq, send full code output to Vivica's model for a human
       // explanation before finalizing the message
@@ -963,7 +988,14 @@ const Index = () => {
         model: currentProfile.model,
         messages: reqMessages,
         temperature: 0.7,
-        max_tokens: 12
+        max_tokens: 12,
+        profile: {
+          model: currentProfile.model,
+          codeModel: currentProfile.codeModel || currentProfile.model,
+          fallbackModel: currentProfile.fallbackModel,
+          temperature: currentProfile.temperature,
+          maxTokens: currentProfile.maxTokens,
+        },
       });
       const data = await res.json();
       const title = data.choices?.[0]?.message?.content?.trim();

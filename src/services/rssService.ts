@@ -1,6 +1,6 @@
 // Readability gives us a clean article body from messy HTML pages.
 import { Readability } from '@mozilla/readability';
-import { DEFAULT_RSS_FEED, CORS_PROXY } from '@/utils/constants';
+import { DEFAULT_RSS_FEEDS, CORS_PROXY } from '@/utils/constants';
 
 export interface Headline {
   title: string;
@@ -9,16 +9,17 @@ export interface Headline {
   source?: string;
 }
 
-const DEFAULT_FEED = DEFAULT_RSS_FEED;
+const DEFAULT_FEEDS = DEFAULT_RSS_FEEDS;
 
 export async function fetchRSSHeadlines(): Promise<Headline[]> {
   const parser = new DOMParser();
   const headlines: Headline[] = [];
 
   const settings = JSON.parse(localStorage.getItem('vivica-settings') || '{}');
-  const feeds: string[] = settings.rssFeeds
+  const userFeeds: string[] = settings.rssFeeds
     ? settings.rssFeeds.split(',').map((s: string) => s.trim()).filter(Boolean)
-    : [DEFAULT_FEED];
+    : [];
+  const feeds: string[] = userFeeds.length ? userFeeds : DEFAULT_FEEDS;
 
   for (const url of feeds) {
     try {
@@ -45,6 +46,38 @@ export async function fetchRSSHeadlines(): Promise<Headline[]> {
     } catch (err) {
       console.debug('Failed to fetch RSS feed:', url, err);
       continue;
+    }
+  }
+
+  // If user-provided feeds produced no headlines, try fallbacks
+  if (headlines.length === 0 && userFeeds.length) {
+    for (const url of DEFAULT_FEEDS) {
+      try {
+        const resp = await fetch(`${CORS_PROXY}${url}`);
+        const data = await resp.text();
+        if (!data) continue;
+
+        const doc = parser.parseFromString(data, 'text/xml');
+        const items = doc.querySelectorAll('item');
+        const domain = new URL(url).hostname.replace('www.', '');
+
+        for (const item of items) {
+          const title = item.querySelector('title')?.textContent?.trim();
+          const link = item.querySelector('link')?.textContent?.trim();
+          const descNode = item.querySelector('description');
+          const contentNode = item.querySelector('content\\:encoded');
+          let description = contentNode?.textContent || descNode?.textContent || '';
+          description = description.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+
+          if (title && link) {
+            headlines.push({ title, link, source: domain, description });
+          }
+        }
+      } catch (err) {
+        console.debug('Failed to fetch fallback RSS feed:', url, err);
+        continue;
+      }
+      if (headlines.length) break;
     }
   }
 
