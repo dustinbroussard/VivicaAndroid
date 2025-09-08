@@ -44,17 +44,19 @@ function getLuminance(hex: string): number {
   return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
 }
 
-function getColors(): { bg: string | null; text: string | null } {
+function getColors(): { bg: string | null } {
   const style = getComputedStyle(document.documentElement);
-  const bg = hslToHex(style.getPropertyValue('--bg-primary').trim());
-  const text = hslToHex(style.getPropertyValue('--text-primary').trim());
-  return { bg, text };
+  // Prefer the canonical background token for status bar color
+  const bg =
+    hslToHex(style.getPropertyValue('--background').trim()) ||
+    hslToHex(style.getPropertyValue('--bg-primary').trim()) ||
+    null;
+  return { bg };
 }
 
 export async function applyStatusBarTheme(variant: 'light' | 'dark') {
-  const { bg, text } = getColors();
+  const { bg } = getColors();
   const background = bg ?? (variant === 'dark' ? '#000000' : '#FFFFFF');
-  const foreground = text ?? (variant === 'dark' ? '#FFFFFF' : '#000000');
 
   // Update PWA/browser theme color
   const meta = document.querySelector('meta[name="theme-color"]');
@@ -66,9 +68,9 @@ export async function applyStatusBarTheme(variant: 'light' | 'dark') {
     await StatusBar.setOverlaysWebView({ overlay: false });
     await StatusBar.setBackgroundColor({ color: background });
 
-    // Choose icon style to match the computed text color. Lighter text requires
-    // light icons, darker text requires dark icons.
-    const style = getLuminance(foreground) > 0.5 ? Style.Light : Style.Dark;
+    // Choose icon style based on background luminance.
+    // Dark background => light icons; Light background => dark icons.
+    const style = getLuminance(background) < 0.5 ? Style.Light : Style.Dark;
     await StatusBar.setStyle({ style });
   }
 }
