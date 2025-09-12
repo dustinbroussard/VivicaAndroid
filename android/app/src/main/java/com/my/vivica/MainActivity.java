@@ -22,7 +22,17 @@ public class MainActivity extends BridgeActivity {
     window.setStatusBarColor(isNight ? Color.BLACK : Color.WHITE);
 
     // Icon color: dark icons on light background; light icons on dark background
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) { // API 30+
+      final int APPEARANCE_LIGHT_STATUS_BARS = 8; // WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+      final var controller = window.getInsetsController();
+      if (controller != null) {
+        if (isNight) {
+          controller.setSystemBarsAppearance(0, APPEARANCE_LIGHT_STATUS_BARS);
+        } else {
+          controller.setSystemBarsAppearance(APPEARANCE_LIGHT_STATUS_BARS, APPEARANCE_LIGHT_STATUS_BARS);
+        }
+      }
+    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) { // API 23-29
       View decor = window.getDecorView();
       int flags = decor.getSystemUiVisibility();
       if (isNight) {

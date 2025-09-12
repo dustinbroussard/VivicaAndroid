@@ -1,4 +1,19 @@
 (function () {
+  // SPA GitHub Pages redirect support: decode ?p=originalPath from 404.html
+  try {
+    var params = new URLSearchParams(window.location.search);
+    var encodedPath = params.get('p');
+    if (encodedPath) {
+      var target = decodeURIComponent(encodedPath);
+      var newUrl = target;
+      // Preserve hash if present separately
+      var hash = window.location.hash || '';
+      if (hash && newUrl.indexOf('#') === -1) newUrl += hash;
+      window.history.replaceState(null, '', newUrl);
+    }
+  } catch {}
+
+  // Set initial theme-color for Android status bar in PWA and web views
   var metaThemeColor = document.querySelector('meta[name="theme-color"]');
   if (!metaThemeColor) return;
   try {
