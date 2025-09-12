@@ -130,6 +130,7 @@
   <androidx.test.janktesthelper/>
   <androidx.test.services/>
   <androidx.test.uiautomator/>
+  <androidx.text/>
   <androidx.textclassifier/>
   <androidx.tracing/>
   <androidx.transition/>

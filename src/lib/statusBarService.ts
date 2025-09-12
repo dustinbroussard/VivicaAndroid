@@ -70,7 +70,9 @@ export async function applyStatusBarTheme(variant: 'light' | 'dark') {
 
     // Choose icon style based on background luminance.
     // Dark background => light icons; Light background => dark icons.
-    const style = getLuminance(background) < 0.5 ? Style.Light : Style.Dark;
+    const isDarkBg = getLuminance(background) < 0.5;
+    // Dark background -> light icons; Light background -> dark icons
+    const style = isDarkBg ? Style.Light : Style.Dark;
     await StatusBar.setStyle({ style });
   }
 }
