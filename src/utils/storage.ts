@@ -1,4 +1,22 @@
 // Storage utilities with graceful fallbacks
+import { getAllMemoriesFromDb, getDb, type MemoryEntry } from './indexedDb';
+
+// Minimal Profile shape used for exports/imports and default creation
+type Profile = {
+  id: string;
+  name: string;
+  model: string;
+  fallbackModel?: string;
+  codeModel?: string;
+  systemPrompt: string;
+  temperature: number;
+  maxTokens: number;
+  isVivica?: boolean;
+  useProfileTheme?: boolean;
+  themeColor?: string;
+  themeVariant?: 'dark' | 'light';
+};
+
 export class Storage {
   private static isAvailable(): boolean {
     try {
@@ -117,13 +135,13 @@ At least once in every 3–5 responses, break your usual style, tone, or structu
       useProfileTheme: false,
       themeColor: 'default',
       themeVariant: 'dark'
-    } as Profile;
+    };
   }
 }
 
 // Debounced storage writer
 export class DebouncedStorage {
-  private static timers: Map<string, NodeJS.Timeout> = new Map();
+  private static timers: Map<string, ReturnType<typeof setTimeout>> = new Map();
 
   static set<T>(key: string, value: T, delay: number = 500): void {
     // Clear existing timer for this key

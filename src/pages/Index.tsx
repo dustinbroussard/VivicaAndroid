@@ -1,12 +1,12 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { ChatHeader } from "@/components/ChatHeader";
 import { ChatBody } from "@/components/ChatBody";
 import { ChatFooter } from "@/components/ChatFooter";
 import { ScrollToBottomButton } from "@/components/ScrollToBottomButton";
-import { SettingsModal } from "@/components/SettingsModal";
-import { ProfilesModal } from "@/components/ProfilesModal";
-import { MemoryModal } from "@/components/MemoryModal";
+const SettingsModal = React.lazy(() => import("@/components/SettingsModal").then(m => ({ default: m.SettingsModal })));
+const ProfilesModal = React.lazy(() => import("@/components/ProfilesModal").then(m => ({ default: m.ProfilesModal })));
+const MemoryModal = React.lazy(() => import("@/components/MemoryModal").then(m => ({ default: m.MemoryModal })));
 import { toast } from "sonner";
 import { ChatService, ChatMessage } from "@/services/chatService";
 import { searchBrave, BRAVE_SEARCH_TOOL, formatBraveResults } from "@/services/searchService";
@@ -129,7 +129,7 @@ const Index = () => {
     return { display: text, loading: false } as const;
   };
 
-  const applyProfileTheme = (profile: Profile) => {
+  const applyProfileTheme = useCallback((profile: Profile) => {
     if (profile.useProfileTheme && profile.themeColor && profile.themeVariant) {
       // Sanitize legacy value "ai-choice" to default
       const safeColor = (profile.themeColor === 'ai-choice' ? 'default' : profile.themeColor) as ThemeColor;
@@ -141,20 +141,9 @@ const Index = () => {
       setColor(safeColor);
       setVariant(globalTheme.variant as ThemeVariant);
     }
-  };
+  }, [setColor, setVariant]);
 
-  // Initialize default profiles and load data
-  useEffect(() => {
-    console.log("Index component mounted, initializing...");
-    initializeProfiles();
-    loadConversations();
-    loadCurrentProfile();
-    // Drop legacy memory key after migration
-    localStorage.removeItem('vivica-memory');
-    const handler = () => loadCurrentProfile();
-    window.addEventListener('profilesUpdated', handler);
-    return () => window.removeEventListener('profilesUpdated', handler);
-  }, []);
+  
 
   // Show/hide the scroll-to-bottom button based on scroll position
   useEffect(() => {
@@ -223,7 +212,7 @@ const Index = () => {
     localStorage.setItem('vivica-profiles', JSON.stringify(profiles));
   };
 
-  const loadCurrentProfile = () => {
+  const loadCurrentProfile = useCallback(() => {
     const savedProfileId = localStorage.getItem('vivica-current-profile');
     const savedProfiles = localStorage.getItem('vivica-profiles');
 
@@ -262,9 +251,9 @@ const Index = () => {
         localStorage.setItem('vivica-current-profile', profiles[0].id);
       }
     }
-  };
+  }, [applyProfileTheme]);
 
-  const loadConversations = async () => {
+  const loadConversations = useCallback(async () => {
     const savedCurrent = localStorage.getItem('vivica-current-conversation');
     let convs: ConversationEntry[] = await getAllConversationsFromDb();
 
@@ -298,9 +287,31 @@ const Index = () => {
         setCurrentConversation(parsedConversations[0]);
       }
     } else {
-      handleNewChat();
+      // Fallback to a new conversation if none are found
+      const newConversation: Conversation = {
+        id: Date.now().toString(),
+        title: 'New Chat',
+        messages: [],
+        timestamp: new Date(),
+        autoTitled: false,
+      };
+      setConversations([newConversation]);
+      setCurrentConversation(newConversation);
     }
-  };
+  }, []);
+
+  // Initialize default profiles and load data
+  useEffect(() => {
+    console.log("Index component mounted, initializing...");
+    initializeProfiles();
+    loadConversations();
+    loadCurrentProfile();
+    // Drop legacy memory key after migration
+    localStorage.removeItem('vivica-memory');
+    const handler = () => loadCurrentProfile();
+    window.addEventListener('profilesUpdated', handler);
+    return () => window.removeEventListener('profilesUpdated', handler);
+  }, [applyProfileTheme, loadConversations, loadCurrentProfile]);
 
   // Persist conversations to IndexedDB whenever they change
   useEffect(() => {
@@ -478,7 +489,7 @@ const Index = () => {
     return prompt;
   };
 
-  const handleNewChat = () => {
+  const handleNewChat = useCallback(() => {
     const newConversation: Conversation = {
       id: Date.now().toString(),
       title: 'New Chat',
@@ -490,7 +501,7 @@ const Index = () => {
     setCurrentConversation(newConversation);
     setSidebarOpen(false);
     toast.success("New conversation started!");
-  };
+  }, []);
 
   const handleSendMessage = async (content: string, baseConv?: Conversation) => {
     const conversation = baseConv || currentConversation;
@@ -1076,20 +1087,26 @@ const Index = () => {
 
 
 
-      <SettingsModal
-        isOpen={showSettings}
-        onClose={() => setShowSettings(false)}
-      />
+      <Suspense fallback={null}>
+        <SettingsModal
+          isOpen={showSettings}
+          onClose={() => setShowSettings(false)}
+        />
+      </Suspense>
 
-      <ProfilesModal
-        isOpen={showProfiles}
-        onClose={() => setShowProfiles(false)}
-      />
+      <Suspense fallback={null}>
+        <ProfilesModal
+          isOpen={showProfiles}
+          onClose={() => setShowProfiles(false)}
+        />
+      </Suspense>
 
-      <MemoryModal
-        isOpen={showMemory}
-        onClose={() => setShowMemory(false)}
-      />
+      <Suspense fallback={null}>
+        <MemoryModal
+          isOpen={showMemory}
+          onClose={() => setShowMemory(false)}
+        />
+      </Suspense>
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 
-interface MemoryEntry {
+export interface MemoryEntry {
   id: string;
   content: string;
   scope: 'global' | 'profile';
@@ -51,7 +51,7 @@ interface VivicaDb extends DBSchema {
 
 let dbPromise: Promise<IDBPDatabase<VivicaDb>> | null = null;
 
-function getDb() {
+export function getDb() {
   if (!dbPromise) {
     dbPromise = openDB<VivicaDb>('vivica-db', 2, {
       upgrade(db, oldVersion) {
@@ -137,4 +137,3 @@ export async function clearAllConversationsFromDb() {
   const db = await getDb();
   await db.clear('conversations');
 }
-

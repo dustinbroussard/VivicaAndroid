@@ -86,7 +86,7 @@ export const WeatherWidget = () => {
 
   return (
     <div className="p-4 rounded-lg bg-card/50 border border-accent/20">
-      <div className="text-sm text-muted-foreground" dangerouslySetInnerHTML={{ __html: weatherText }} />
+      <div className="text-sm text-muted-foreground">{weatherText}</div>
     </div>
   );
 };

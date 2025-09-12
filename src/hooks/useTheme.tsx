@@ -35,9 +35,37 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const saved = Storage.get(STORAGE_KEYS.THEME, { color: 'default' as ThemeColor, variant: 'dark' as ThemeVariant });
-    // Sanitize legacy or unknown values (e.g., "ai-choice")
-    setColor(isValidColor(saved.color) ? saved.color : 'default');
+    // Migrate legacy theme values eagerly (e.g., ai-choice -> default)
+    const migratedColor: ThemeColor = isValidColor(saved.color) ? saved.color : 'default';
+    if (saved.color !== migratedColor) {
+      Storage.set(STORAGE_KEYS.THEME, { color: migratedColor, variant: saved.variant });
+    }
+    setColor(migratedColor);
     setVariant(saved.variant as ThemeVariant);
+
+    // Also migrate any profile themeColor values that used legacy labels
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.PROFILES);
+      if (raw) {
+        type ProfileLike = { themeColor?: string } & Record<string, unknown>;
+        const profiles: ProfileLike[] = JSON.parse(raw);
+        let changed = false;
+        const updated = profiles.map((p: ProfileLike) => {
+          if (p && p.themeColor === 'ai-choice') {
+            changed = true;
+            return { ...p, themeColor: 'default' } as ProfileLike;
+          }
+          return p;
+        });
+        if (changed) {
+          localStorage.setItem(STORAGE_KEYS.PROFILES, JSON.stringify(updated));
+          window.dispatchEvent(new Event('profilesUpdated'));
+        }
+      }
+    } catch (e) {
+      // Ignore malformed profiles data; migration is best-effort
+      console.debug('Theme migration skipped (profiles parse error)', e);
+    }
   }, []);
 
   useEffect(() => {

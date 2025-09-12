@@ -152,7 +152,7 @@ export const ChatBody = forwardRef<HTMLDivElement, ChatBodyProps>(
         setWelcomeError(true);
         setWelcomeMsg('Vivica is brooding. Try again.');
       }
-    }, [conversation?.id, conversation?.messages.length]);
+    }, [conversation]);
 
     const scrollToBottom = () => {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -166,7 +166,7 @@ export const ChatBody = forwardRef<HTMLDivElement, ChatBodyProps>(
       const atBottom =
         el.scrollHeight - el.scrollTop <= el.clientHeight + 16;
       if (atBottom) scrollToBottom();
-    }, [conversation?.messages, isTyping]);
+    }, [conversation?.messages, isTyping, ref]);
 
     // Fetch a dynamic welcome message from the LLM whenever the welcome screen is visible
     useEffect(() => {
@@ -185,7 +185,7 @@ export const ChatBody = forwardRef<HTMLDivElement, ChatBodyProps>(
         window.removeEventListener('focus', onFocus);
         document.removeEventListener('visibilitychange', onVisibility);
       };
-    }, [conversation?.id, conversation?.messages.length, fetchWelcome]);
+    }, [conversation, fetchWelcome]);
 
     useEffect(() => {
       if (!welcomeMsg) return;
@@ -272,7 +272,7 @@ export const ChatBody = forwardRef<HTMLDivElement, ChatBodyProps>(
                       message.failed ? 'border-accent/50 bg-accent/10' : ''
                     } px-3 py-2 rounded-[2rem] max-w-[95vw] sm:max-w-2xl break-words ${
                       message.role === 'user'
-                        ? 'rounded-br-none ml-6 mr-2000'
+                        ? 'rounded-br-none ml-6 mr-6'
                         : 'rounded-bl-none mr-6 ml-6'
                     } ${
                       index === conversation?.messages.length - 1 ? 'glow-once' : ''
@@ -331,7 +331,7 @@ export const ChatBody = forwardRef<HTMLDivElement, ChatBodyProps>(
                         )}
                         {formatTimestamp(message.timestamp)}
                         {message.profileId !== currentProfile?.id && (
-                          <span className="px-1 py-0.5 rounded text-xxs bg-muted/50">
+                          <span className="px-1 py-0.5 rounded text-[10px] bg-muted/50">
                             {getProfileName(message.profileId)}
                           </span>
                         )}

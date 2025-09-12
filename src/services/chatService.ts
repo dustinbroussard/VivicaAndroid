@@ -265,9 +265,11 @@ export class ChatService {
           ChatService.clearCooldown(key);
 
           if (attempt > 0) {
-            showRetryFeedback
-              ? toast.success(`Connected with backup key`, { duration: 2000, position: 'bottom-center' })
-              : console.log(`Connected with backup key ${key.slice(-4)}`);
+            if (showRetryFeedback) {
+              toast.success(`Connected with backup key`, { duration: 2000, position: 'bottom-center' });
+            } else {
+              console.log(`Connected with backup key ${key.slice(-4)}`);
+            }
             const backoff = Math.min(1000 * Math.pow(2, attempt), 8000);
             console.debug(`API request succeeded after ${attempt} retries (next backoff: ${backoff}ms)`);
           }
