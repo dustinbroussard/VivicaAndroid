@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { ThemeColor, ThemeVariant } from "@/hooks/useTheme";
+import { exportJsonFile } from "@/utils/export";
 
 interface Profile {
   id: string;
@@ -207,14 +208,8 @@ export const ProfilesModal = ({ isOpen, onClose }: ProfilesModalProps) => {
                 onClick={async () => {
                   try {
                     const profiles = JSON.parse(localStorage.getItem(STORAGE_KEYS.PROFILES) || '[]');
-                    const data = JSON.stringify(profiles, null, 2);
-                    const blob = new Blob([data], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `vivica-profiles-${new Date().toISOString().split('T')[0]}.json`;
-                    a.click();
-                    URL.revokeObjectURL(url);
+                    const filename = `vivica-profiles-${new Date().toISOString().split('T')[0]}.json`;
+                    await exportJsonFile(filename, profiles);
                     toast.success('Profiles exported successfully!');
                   } catch (err) {
                     console.error('Export failed:', err);

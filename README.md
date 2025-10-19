@@ -65,6 +65,14 @@
 3. `npm run dev` (or `npm run build` for production)
 4. Open in your browser. Vivica is ready!
 
+## Development
+
+- Lint: `npm run lint`
+- Type check: `npx tsc --noEmit`
+- Build: `npm run build`
+
+CI runs lint, type check, and build on every push/PR to `main`.
+
 ## Usage Notes
 
 - **API Keys:**  

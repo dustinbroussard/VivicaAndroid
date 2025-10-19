@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import { StatusBar, Style } from '@capacitor/status-bar';
+import { EdgeToEdge } from '@capawesome/capacitor-android-edge-to-edge-support';
 
 function hslToHex(hsl: string): string | null {
   const match = hsl.match(/\d+(?:\.\d+)?/g);
@@ -57,22 +58,48 @@ function getColors(): { bg: string | null } {
 export async function applyStatusBarTheme(variant: 'light' | 'dark') {
   const { bg } = getColors();
   const background = bg ?? (variant === 'dark' ? '#000000' : '#FFFFFF');
+  const isDarkBg = getLuminance(background) < 0.5;
 
-  // Update PWA/browser theme color
-  const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) {
-    meta.setAttribute('content', background);
-  }
+  // Update PWA/browser theme color (support multiple theme-color metas with media queries)
+  const metas = document.querySelectorAll('meta[name="theme-color"]');
+  metas.forEach((m) => m.setAttribute('content', background));
 
   if (Capacitor.isNativePlatform()) {
     await StatusBar.setOverlaysWebView({ overlay: false });
     await StatusBar.setBackgroundColor({ color: background });
+    try {
+      // Also set the Android navigation bar background to match
+      await EdgeToEdge.setBackgroundColor({ color: background });
+    } catch (e) {
+      // Optional plugin; ignore if unavailable
+      console.debug('EdgeToEdge setBackgroundColor skipped', e);
+    }
 
-    // Choose icon style based on background luminance.
-    // Dark background => light icons; Light background => dark icons.
-    const isDarkBg = getLuminance(background) < 0.5;
-    // Dark background -> light icons; Light background -> dark icons
-    const style = isDarkBg ? Style.Light : Style.Dark;
+    // Force icon style based on theme variant for consistency across devices.
+    // Dark variant => light icons; Light variant => dark icons.
+    const style = variant === 'dark' ? Style.Light : Style.Dark;
     await StatusBar.setStyle({ style });
+
+    // Try to set navigation bar icon style via NavigationBar plugin if present
+    try {
+      type NavStyle = 'LIGHT' | 'DARK';
+      type NavigationBarPlugin = {
+        setStyle?: (opts: { style: NavStyle }) => Promise<void>;
+        setButtonStyle?: (opts: { style: NavStyle }) => Promise<void>;
+      };
+      type CapWithPlugins = { Plugins?: { NavigationBar?: NavigationBarPlugin } };
+      const cap = Capacitor as unknown as CapWithPlugins;
+      const nav = cap?.Plugins?.NavigationBar;
+      if (nav) {
+        const navStyle: NavStyle = isDarkBg ? 'LIGHT' : 'DARK';
+        if (typeof nav.setStyle === 'function') {
+          await nav.setStyle({ style: navStyle });
+        } else if (typeof nav.setButtonStyle === 'function') {
+          await nav.setButtonStyle({ style: navStyle });
+        }
+      }
+    } catch (e) {
+      console.debug('NavigationBar style update skipped', e);
+    }
   }
 }

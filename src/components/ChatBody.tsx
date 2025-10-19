@@ -14,7 +14,7 @@ import { WeatherWidget } from "@/components/WeatherWidget";
 import { RSSWidget } from "@/components/RSSWidget";
 import { ChatService, ChatMessage } from "@/services/chatService";
 import { Storage } from "@/utils/storage";
-import { saveWelcomeMessage } from "@/utils/indexedDb";
+import { saveWelcomeMessage, getCachedWelcomeMessages } from "@/utils/indexedDb";
 import { getPrimaryApiKey } from "@/utils/api";
 
 const getUserName = () => {
@@ -148,7 +148,19 @@ export const ChatBody = forwardRef<HTMLDivElement, ChatBodyProps>(
         }
 
         throw new Error('empty');
-      } catch {
+      } catch (e) {
+        try {
+          // Graceful fallback: use a cached welcome message if available
+          const cached = await getCachedWelcomeMessages();
+          const last = cached.sort((a,b) => (b.id! - a.id!))[0];
+          if (last?.text) {
+            setWelcomeMsg(last.text);
+            setWelcomeError(false);
+            return;
+          }
+        } catch (_) {
+          // ignore cache errors
+        }
         setWelcomeError(true);
         setWelcomeMsg('Vivica is brooding. Try again.');
       }

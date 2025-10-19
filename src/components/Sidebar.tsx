@@ -124,10 +124,15 @@ export const Sidebar = ({
         <div className="flex flex-col h-full">
           <div className="p-4 border-b border-border">
             <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onNewChat}
+                className="flex items-center gap-2 focus:outline-none hover:opacity-80 transition-opacity"
+                title="Go to Welcome"
+              >
                 <img src={logoSrc} alt="Vivica" className="w-8 h-8" />
                 <span className="font-semibold">Vivica</span>
-              </div>
+              </button>
               <div className="flex items-center gap-1">
                 <Button
                   variant="ghost"
@@ -209,7 +214,7 @@ export const Sidebar = ({
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity h-6 w-6 p-0"
+                            className="opacity-100 transition-opacity h-6 w-6 p-0"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <MoreVertical className="w-3 h-3" />

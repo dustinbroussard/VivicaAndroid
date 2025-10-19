@@ -784,12 +784,46 @@ const Index = () => {
         }
       }
 
-      // Conversation finished streaming; attempt auto-title if needed
-      const finalMsg = { ...assistantMessage, content: fullContent, isCodeResponse: isCodeResp, codeLoading: false };
+      // Conversation finished streaming. If this was a code response,
+      // run the full output through the persona model to produce a human
+      // explanation, then include the final code in a fenced block.
+      let finalizedContent = fullContent;
+      if (isCodeResp) {
+        try {
+          const explainerMessages: ChatMessage[] = [
+            { role: 'system', content: systemPrompt },
+            ...updatedConversation.messages.map(m => ({ role: m.role, content: m.content })),
+            { role: 'assistant', content: fullContent },
+            {
+              role: 'user',
+              content:
+                'Explain the code above step-by-step in plain language, then show the final code in a single fenced block. Keep your usual voice. Be concise.'
+            }
+          ];
+          const explainData = await chatService.sendMessageJson({
+            model: currentProfile.model,
+            messages: explainerMessages,
+            temperature: Math.max(0.6, Math.min(0.9, currentProfile.temperature)),
+            max_tokens: Math.min(800, currentProfile.maxTokens),
+            profile: {
+              model: currentProfile.model,
+              codeModel: currentProfile.codeModel || currentProfile.model,
+              fallbackModel: currentProfile.fallbackModel,
+              temperature: currentProfile.temperature,
+              maxTokens: currentProfile.maxTokens,
+            },
+          });
+          finalizedContent = explainData.choices?.[0]?.message?.content?.trim() || fullContent;
+        } catch (e) {
+          console.debug('Code explanation step failed; using raw code output', e);
+        }
+      }
+
+      const finalMsg = { ...assistantMessage, content: finalizedContent, isCodeResponse: isCodeResp, codeLoading: false };
       const finalConv: Conversation = {
         ...updatedConversation,
         messages: [...updatedConversation.messages, finalMsg],
-        lastMessage: fullContent,
+        lastMessage: finalizedContent,
         timestamp: new Date()
       };
       if (!conversation.autoTitled) {

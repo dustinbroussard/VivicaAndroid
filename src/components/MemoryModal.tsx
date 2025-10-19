@@ -16,6 +16,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { getMemories, deleteMemory, editMemory, clearAllMemories } from "@/utils/memoryUtils";
 import { saveMemoryToDb } from "@/utils/indexedDb";
+import { exportJsonFile } from "@/utils/export";
 
 interface MemoryData {
   scope: 'global' | 'profile';
@@ -160,14 +161,7 @@ export const MemoryModal = ({
   const handleExport = async () => {
     const memoryEntries = await getMemories(currentProfileId, 'all');
     const exportData = { memory, memories: memoryEntries };
-    const dataStr = JSON.stringify(exportData, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'vivica-memory.json';
-    link.click();
-    URL.revokeObjectURL(url);
+    await exportJsonFile('vivica-memory.json', exportData);
     toast.success("Memory exported successfully");
   };
 

@@ -18,6 +18,7 @@ import { ThemeSelector } from "./ThemeSelector";
 import { ApiKeyInput } from "./ApiKeyInput";
 import { DEFAULT_RSS_FEEDS } from "@/utils/constants";
 import { clearAllConversationsFromDb } from "@/utils/indexedDb";
+import { exportJsonFile } from "@/utils/export";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -199,13 +200,8 @@ export const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
                         }
                       }
                     });
-                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `vivica-backup-${new Date().toISOString().split('T')[0]}.json`;
-                    a.click();
-                    URL.revokeObjectURL(url);
+                    const filename = `vivica-backup-${new Date().toISOString().split('T')[0]}.json`;
+                    await exportJsonFile(filename, data);
                     toast.success('Backup created successfully!');
                   } catch (err) {
                     console.error('Backup failed:', err);
