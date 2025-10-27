@@ -150,8 +150,7 @@ const Index = () => {
     const el = chatBodyRef.current;
     if (!el) return;
     const onScroll = () => {
-      const atBottom =
-        el.scrollHeight - el.scrollTop <= el.clientHeight + 16;
+      const atBottom = el.scrollHeight - el.scrollTop <= el.clientHeight + 64;
       setShowScrollButton(!atBottom);
     };
     el.addEventListener('scroll', onScroll);
@@ -162,8 +161,7 @@ const Index = () => {
   useEffect(() => {
     const el = chatBodyRef.current;
     if (!el) return;
-    const atBottom =
-      el.scrollHeight - el.scrollTop <= el.clientHeight + 16;
+    const atBottom = el.scrollHeight - el.scrollTop <= el.clientHeight + 64;
     setShowScrollButton(!atBottom);
   }, [currentConversation?.messages.length, isTyping]);
 
@@ -173,16 +171,7 @@ const Index = () => {
   }, [currentConversation?.id]);
 
   const initializeProfiles = () => {
-    const savedProfiles = localStorage.getItem('vivica-profiles');
-
-    let profiles: Profile[] = [];
-    if (savedProfiles) {
-      try {
-        profiles = JSON.parse(savedProfiles);
-      } catch {
-        profiles = [];
-      }
-    }
+    let profiles: Profile[] = Storage.get(STORAGE_KEYS.PROFILES, [] as Profile[]);
 
     const hasVivica = profiles.some((p) => p.isVivica);
     if (!hasVivica) {
@@ -209,47 +198,43 @@ const Index = () => {
       ];
     }
 
-    localStorage.setItem('vivica-profiles', JSON.stringify(profiles));
+    Storage.set(STORAGE_KEYS.PROFILES, profiles);
   };
 
   const loadCurrentProfile = useCallback(() => {
-    const savedProfileId = localStorage.getItem('vivica-current-profile');
-    const savedProfiles = localStorage.getItem('vivica-profiles');
+    const savedProfileId = localStorage.getItem(STORAGE_KEYS.CURRENT_PROFILE);
+    let profiles: Profile[] = [];
+    try {
+      profiles = JSON.parse(localStorage.getItem(STORAGE_KEYS.PROFILES) || '[]');
+      // Validate profile schema
+      profiles = profiles.filter(p => 
+        p.id && p.name && p.model && 
+        typeof p.temperature === 'number' &&
+        typeof p.maxTokens === 'number'
+      );
+    } catch {
+      profiles = [];
+    }
 
-    if (savedProfiles) {
-      let profiles: Profile[] = [];
-      try {
-        profiles = JSON.parse(savedProfiles);
-        // Validate profile schema
-        profiles = profiles.filter(p => 
-          p.id && p.name && p.model && 
-          typeof p.temperature === 'number' &&
-          typeof p.maxTokens === 'number'
-        );
-      } catch {
-        profiles = [];
+    if (!profiles.some(p => p.isVivica)) {
+      const vivicaProfile = Storage.createVivicaProfile();
+      profiles.unshift(vivicaProfile);
+      localStorage.setItem(STORAGE_KEYS.PROFILES, JSON.stringify(profiles));
+      console.log('Restored default Vivica profile');
+    }
+    if (savedProfileId) {
+      const profile = profiles.find(p => p.id === savedProfileId);
+      if (profile) {
+        setCurrentProfile(profile);
+        applyProfileTheme(profile);
+        return;
       }
-
-      if (!profiles.some(p => p.isVivica)) {
-        const vivicaProfile = Storage.createVivicaProfile();
-        profiles.unshift(vivicaProfile);
-        localStorage.setItem('vivica-profiles', JSON.stringify(profiles));
-        console.log('Restored default Vivica profile');
-      }
-      if (savedProfileId) {
-        const profile = profiles.find(p => p.id === savedProfileId);
-        if (profile) {
-          setCurrentProfile(profile);
-          applyProfileTheme(profile);
-          return;
-        }
-      }
-      // Fallback to first profile
-      if (profiles.length > 0) {
-        setCurrentProfile(profiles[0]);
-        applyProfileTheme(profiles[0]);
-        localStorage.setItem('vivica-current-profile', profiles[0].id);
-      }
+    }
+    // Fallback to first profile
+    if (profiles.length > 0) {
+      setCurrentProfile(profiles[0]);
+      applyProfileTheme(profiles[0]);
+      localStorage.setItem(STORAGE_KEYS.CURRENT_PROFILE, profiles[0].id);
     }
   }, [applyProfileTheme]);
 
@@ -315,7 +300,8 @@ const Index = () => {
 
   // Persist conversations to IndexedDB whenever they change
   useEffect(() => {
-    if (conversations.length > 0) {
+    if (conversations.length === 0) return;
+    const handle = setTimeout(() => {
       const toSave = conversations.map(conv => ({
         ...conv,
         timestamp: conv.timestamp.toISOString(),
@@ -327,7 +313,8 @@ const Index = () => {
       saveConversationsToDb(toSave).catch(e =>
         console.warn('Failed to save conversations', e)
       );
-    }
+    }, 400);
+    return () => clearTimeout(handle);
   }, [conversations]);
 
   // Save current conversation ID
@@ -339,7 +326,7 @@ const Index = () => {
 
   const handleProfileChange = (profile: Profile) => {
     setCurrentProfile(profile);
-    localStorage.setItem('vivica-current-profile', profile.id);
+    localStorage.setItem(STORAGE_KEYS.CURRENT_PROFILE, profile.id);
     applyProfileTheme(profile);
     toast.success(`Switched to ${profile.name} profile`);
   };
@@ -348,7 +335,7 @@ const Index = () => {
     const memoryActive = Storage.get('vivica-memory-active', false);
     if (!memoryActive) return '';
 
-    const profileId = Storage.get('vivica-current-profile', '');
+    const profileId = Storage.get(STORAGE_KEYS.CURRENT_PROFILE, '');
     const memoryKeyPrefix = 'vivica-memory';
     const parts: Record<string, unknown>[] = [];
 

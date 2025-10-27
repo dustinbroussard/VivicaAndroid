@@ -8,11 +8,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import InstallPrompt from "./components/InstallPrompt";
 
-// Create router with future flags to suppress warnings
-const routerFutureFlags = {
-  v7_startTransition: true,
-  v7_relativeSplatPath: true,
-};
+// Note: BrowserRouter does not support future flags; using default behavior
 
 const queryClient = new QueryClient();
 
@@ -24,7 +20,7 @@ const AppContent = () => {
       <Toaster />
       <Sonner />
       <InstallPrompt />
-      <BrowserRouter future={routerFutureFlags}>
+      <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="*" element={<NotFound />} />

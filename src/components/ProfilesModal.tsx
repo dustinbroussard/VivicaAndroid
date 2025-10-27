@@ -70,15 +70,12 @@ export const ProfilesModal = ({ isOpen, onClose }: ProfilesModalProps) => {
   ];
 
   useEffect(() => {
-    const saved = localStorage.getItem('vivica-profiles');
     let list: Profile[] = [];
-
-    if (saved) {
-      try {
-        list = JSON.parse(saved);
-      } catch (err) {
-        console.error('Failed to parse profiles', err);
-      }
+    try {
+      list = JSON.parse(localStorage.getItem(STORAGE_KEYS.PROFILES) || '[]');
+    } catch (err) {
+      console.error('Failed to parse profiles', err);
+      list = [];
     }
 
     if (!list.some(p => p.isVivica)) {
@@ -106,7 +103,7 @@ export const ProfilesModal = ({ isOpen, onClose }: ProfilesModalProps) => {
     }
 
     setProfiles(list);
-    localStorage.setItem('vivica-profiles', JSON.stringify(list));
+    localStorage.setItem(STORAGE_KEYS.PROFILES, JSON.stringify(list));
   }, []);
 
   const handleCreateProfile = () => {
@@ -134,7 +131,7 @@ export const ProfilesModal = ({ isOpen, onClose }: ProfilesModalProps) => {
 
   const persistProfiles = (list: Profile[]) => {
     setProfiles(list);
-    localStorage.setItem('vivica-profiles', JSON.stringify(list));
+    localStorage.setItem(STORAGE_KEYS.PROFILES, JSON.stringify(list));
     window.dispatchEvent(new Event('profilesUpdated'));
   };
 
@@ -169,12 +166,12 @@ export const ProfilesModal = ({ isOpen, onClose }: ProfilesModalProps) => {
       const updated = profiles.filter(p => p.id !== id);
       persistProfiles(updated);
 
-      const current = localStorage.getItem('vivica-current-profile');
+      const current = localStorage.getItem(STORAGE_KEYS.CURRENT_PROFILE);
       if (current === id) {
         if (updated.length > 0) {
-          localStorage.setItem('vivica-current-profile', updated[0].id);
+          localStorage.setItem(STORAGE_KEYS.CURRENT_PROFILE, updated[0].id);
         } else {
-          localStorage.removeItem('vivica-current-profile');
+          localStorage.removeItem(STORAGE_KEYS.CURRENT_PROFILE);
         }
       }
 
@@ -236,6 +233,8 @@ export const ProfilesModal = ({ isOpen, onClose }: ProfilesModalProps) => {
                         const profiles = JSON.parse(contents);
                         if (Array.isArray(profiles)) {
                           localStorage.setItem(STORAGE_KEYS.PROFILES, JSON.stringify(profiles));
+                          // Notify the app so it can reload the active profile if needed
+                          window.dispatchEvent(new Event('profilesUpdated'));
                           toast.success('Profiles imported successfully!');
                           // Refresh the profile list by re-triggering the useEffect
                           setProfiles(JSON.parse(localStorage.getItem(STORAGE_KEYS.PROFILES) || '[]'));

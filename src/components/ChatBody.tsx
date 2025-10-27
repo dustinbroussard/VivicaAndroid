@@ -13,13 +13,47 @@ import { toast } from "sonner";
 import { WeatherWidget } from "@/components/WeatherWidget";
 import { RSSWidget } from "@/components/RSSWidget";
 import { ChatService, ChatMessage } from "@/services/chatService";
-import { Storage } from "@/utils/storage";
+import { Storage, STORAGE_KEYS } from "@/utils/storage";
 import { saveWelcomeMessage, getCachedWelcomeMessages } from "@/utils/indexedDb";
 import { getPrimaryApiKey } from "@/utils/api";
 
+// Rotating fallback welcomes for when dynamic fetch fails
+const FALLBACK_WELCOMES: string[] = [
+  "Took you long enough. What are we breaking today?",
+  "You look bored. Say something worth my time.",
+  "I bite. Only if you’re dull. Start talking.",
+  "Spill it. I’m not here to babysit your silence.",
+  "Your move, darling. Make it interesting.",
+  "I sharpen knives on small talk. Try me.",
+  "If you hesitate, I’ll start without you.",
+  "I’m listening. Barely. Impress me.",
+  "Let’s skip the warm-up. What do you want?",
+  "Secrets? Problems? Bad ideas? I collect them.",
+  "I don’t do coy. Give me the point.",
+  "Bold question, reckless plan, or nothing? Choose.",
+];
+
+const FALLBACK_WELCOME_INDEX_KEY = 'vivica-fallback-welcome-index';
+
+function getNextFallbackWelcome(): string {
+  try {
+    const raw = localStorage.getItem(FALLBACK_WELCOME_INDEX_KEY);
+    const idx = raw ? Math.max(0, parseInt(raw, 10)) : 0;
+    const text = FALLBACK_WELCOMES[idx % FALLBACK_WELCOMES.length];
+    localStorage.setItem(
+      FALLBACK_WELCOME_INDEX_KEY,
+      String((idx + 1) % FALLBACK_WELCOMES.length)
+    );
+    return text;
+  } catch {
+    // Fallback to a random choice if storage is unavailable
+    return FALLBACK_WELCOMES[Math.floor(Math.random() * FALLBACK_WELCOMES.length)];
+  }
+}
+
 const getUserName = () => {
   try {
-    const profileId = localStorage.getItem('vivica-current-profile') || '';
+    const profileId = localStorage.getItem(STORAGE_KEYS.CURRENT_PROFILE) || '';
     const profileMem = profileId
       ? JSON.parse(localStorage.getItem(`vivica-memory-profile-${profileId}`) || 'null')
       : null;
@@ -33,8 +67,8 @@ const getUserName = () => {
 
 const getProfileName = (id?: string) => {
   try {
-    const list: { id: string; name: string }[] = JSON.parse(localStorage.getItem('vivica-profiles') || '[]');
-    const pid = id || localStorage.getItem('vivica-current-profile');
+    const list: { id: string; name: string }[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.PROFILES) || '[]');
+    const pid = id || localStorage.getItem(STORAGE_KEYS.CURRENT_PROFILE);
     return list.find((p) => p.id === pid)?.name || 'Vivica';
   } catch {
     return 'Vivica';
@@ -98,7 +132,7 @@ export const ChatBody = forwardRef<HTMLDivElement, ChatBodyProps>(
       setWelcomeError(false);
 
       const getFresh = async () => {
-        const raw = localStorage.getItem('vivica-profiles') || '[]';
+        const raw = localStorage.getItem(STORAGE_KEYS.PROFILES) || '[]';
         const profiles = JSON.parse(raw) as ProfileBrief[];
         const vivica = profiles.find(p => p.isVivica) || Storage.createVivicaProfile();
 
@@ -161,8 +195,9 @@ export const ChatBody = forwardRef<HTMLDivElement, ChatBodyProps>(
         } catch (_) {
           // ignore cache errors
         }
+        // Use rotating snarky fallback welcomes and allow click-to-retry
         setWelcomeError(true);
-        setWelcomeMsg('Vivica is brooding. Try again.');
+        setWelcomeMsg(getNextFallbackWelcome());
       }
     }, [conversation]);
 
@@ -175,8 +210,7 @@ export const ChatBody = forwardRef<HTMLDivElement, ChatBodyProps>(
     useEffect(() => {
       const el = (ref as React.RefObject<HTMLDivElement>)?.current;
       if (!el) return;
-      const atBottom =
-        el.scrollHeight - el.scrollTop <= el.clientHeight + 16;
+      const atBottom = el.scrollHeight - el.scrollTop <= el.clientHeight + 64;
       if (atBottom) scrollToBottom();
     }, [conversation?.messages, isTyping, ref]);
 

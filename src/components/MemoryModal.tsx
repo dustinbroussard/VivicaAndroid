@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { getMemories, deleteMemory, editMemory, clearAllMemories } from "@/utils/memoryUtils";
 import { saveMemoryToDb } from "@/utils/indexedDb";
 import { exportJsonFile } from "@/utils/export";
+import { STORAGE_KEYS } from "@/utils/storage";
 
 interface MemoryData {
   scope: 'global' | 'profile';
@@ -55,8 +56,9 @@ export const MemoryModal = ({
   isOpen,
   onClose
 }: MemoryModalProps) => {
-  const currentProfileId = localStorage.getItem('vivica-current-profile') || '';
+  const currentProfileId = localStorage.getItem(STORAGE_KEYS.CURRENT_PROFILE) || '';
   const [memory, setMemory] = useState<MemoryData>({
+    scope: 'profile',
     identity: {
       name: '',
       pronouns: '',
@@ -78,7 +80,7 @@ export const MemoryModal = ({
   const [memories, setMemories] = useState<MemoryItem[]>([]);
 
   useEffect(() => {
-    const profileId = localStorage.getItem('vivica-current-profile') || '';
+    const profileId = localStorage.getItem(STORAGE_KEYS.CURRENT_PROFILE) || '';
     const profileKey = profileId ? `vivica-memory-profile-${profileId}` : '';
     const profileMem = profileKey ? localStorage.getItem(profileKey) : null;
     const globalMem = localStorage.getItem('vivica-memory-global');
@@ -86,7 +88,15 @@ export const MemoryModal = ({
 
     const stored = profileMem || globalMem;
     if (stored) {
-      setMemory(JSON.parse(stored));
+      try {
+        const parsed = JSON.parse(stored);
+        setMemory(prev => ({
+          scope: parsed.scope === 'global' || parsed.scope === 'profile' ? parsed.scope : (profileMem ? 'profile' : 'global'),
+          ...parsed,
+        }));
+      } catch {
+        // ignore parse errors and keep defaults
+      }
     }
 
     if (memoryActive !== null) {
@@ -119,7 +129,7 @@ export const MemoryModal = ({
   }, [isOpen, currentProfileId]);
 
   const handleSave = () => {
-    const profileId = localStorage.getItem('vivica-current-profile');
+    const profileId = localStorage.getItem(STORAGE_KEYS.CURRENT_PROFILE);
     const saveMemory = {
       ...memory,
       profileId: memory.scope === 'profile' ? profileId : undefined
@@ -140,6 +150,7 @@ export const MemoryModal = ({
   const handleReset = () => {
     if (confirm("Are you sure you want to reset all memory data? This action cannot be undone.")) {
       const emptyMemory: MemoryData = {
+        scope: 'profile',
         identity: { name: '', pronouns: '', occupation: '', location: '' },
         personality: { tone: '', style: '', interests: '' },
         customInstructions: '',
@@ -148,7 +159,7 @@ export const MemoryModal = ({
       };
       setMemory(emptyMemory);
       // Remove all persisted memory keys for full reset
-      const profileId = localStorage.getItem('vivica-current-profile') || '';
+      const profileId = localStorage.getItem(STORAGE_KEYS.CURRENT_PROFILE) || '';
       localStorage.removeItem('vivica-memory-global');
       if (profileId) localStorage.removeItem(`vivica-memory-profile-${profileId}`);
       localStorage.removeItem('vivica-memory');
@@ -250,6 +261,30 @@ export const MemoryModal = ({
         </DialogHeader>
 
         <div className="space-y-6 py-4">
+          {/* Memory Scope (where to store this config) */}
+          <div className="space-y-2">
+            <Label className="text-base font-semibold">Memory Scope</Label>
+            <div className="flex gap-2">
+              <Button
+                variant={memory.scope === 'global' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setMemory(prev => ({ ...prev, scope: 'global' }))}
+              >
+                Global
+              </Button>
+              <Button
+                variant={memory.scope === 'profile' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setMemory(prev => ({ ...prev, scope: 'profile' }))}
+              >
+                Current Profile
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Global memories apply to every persona. Profile memories only apply to the currently selected persona.
+            </p>
+          </div>
+
           {/* Memory Scope Filter */}
           <div className="flex items-end justify-between gap-4">
             <div className="space-y-2">
