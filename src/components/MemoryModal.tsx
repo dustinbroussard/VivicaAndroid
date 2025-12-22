@@ -56,6 +56,7 @@ export const MemoryModal = ({
   isOpen,
   onClose
 }: MemoryModalProps) => {
+  const memoryScopeKey = 'vivica-memory-scope';
   const currentProfileId = localStorage.getItem(STORAGE_KEYS.CURRENT_PROFILE) || '';
   const [memory, setMemory] = useState<MemoryData>({
     scope: 'profile',
@@ -84,19 +85,34 @@ export const MemoryModal = ({
     const profileKey = profileId ? `vivica-memory-profile-${profileId}` : '';
     const profileMem = profileKey ? localStorage.getItem(profileKey) : null;
     const globalMem = localStorage.getItem('vivica-memory-global');
+    const storedScopeRaw = localStorage.getItem(memoryScopeKey);
+    const storedScope = storedScopeRaw === 'global' || storedScopeRaw === 'profile' ? storedScopeRaw : null;
     const memoryActive = localStorage.getItem('vivica-memory-active');
 
-    const stored = profileMem || globalMem;
+    const stored = storedScope === 'global'
+      ? globalMem
+      : (profileMem || globalMem);
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
         setMemory(prev => ({
-          scope: parsed.scope === 'global' || parsed.scope === 'profile' ? parsed.scope : (profileMem ? 'profile' : 'global'),
+          ...prev,
           ...parsed,
+          scope: storedScope || (parsed.scope === 'global' || parsed.scope === 'profile'
+            ? parsed.scope
+            : (profileMem ? 'profile' : 'global')),
         }));
       } catch {
-        // ignore parse errors and keep defaults
+        setMemory(prev => ({
+          ...prev,
+          scope: storedScope || prev.scope
+        }));
       }
+    } else if (storedScope) {
+      setMemory(prev => ({
+        ...prev,
+        scope: storedScope
+      }));
     }
 
     if (memoryActive !== null) {
@@ -141,6 +157,7 @@ export const MemoryModal = ({
 
     // Persist memory under the scoped key
     localStorage.setItem(key, JSON.stringify(saveMemory));
+    localStorage.setItem(memoryScopeKey, memory.scope);
     localStorage.setItem('vivica-memory-active', JSON.stringify(isActive));
     
     toast.success(`Memory saved (${memory.scope} scope)!`);
@@ -164,6 +181,7 @@ export const MemoryModal = ({
       if (profileId) localStorage.removeItem(`vivica-memory-profile-${profileId}`);
       localStorage.removeItem('vivica-memory');
       localStorage.removeItem('vivica-memory-active');
+      localStorage.removeItem(memoryScopeKey);
       clearAllMemories();
       toast.success("Memory data reset");
     }

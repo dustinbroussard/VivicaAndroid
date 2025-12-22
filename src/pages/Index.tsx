@@ -331,13 +331,34 @@ const Index = () => {
     toast.success(`Switched to ${profile.name} profile`);
   };
 
+  const MEMORY_SCOPE_KEY = 'vivica-memory-scope';
+
+  type StoredMemory = {
+    scope?: 'global' | 'profile';
+    identity?: {
+      name?: string;
+      pronouns?: string;
+      occupation?: string;
+      location?: string;
+    };
+    personality?: {
+      tone?: string;
+      style?: string;
+      interests?: string;
+    };
+    customInstructions?: string;
+    systemNotes?: string;
+  };
+
   const getMemoryPrompt = async () => {
     const memoryActive = Storage.get('vivica-memory-active', false);
     if (!memoryActive) return '';
 
     const profileId = Storage.get(STORAGE_KEYS.CURRENT_PROFILE, '');
     const memoryKeyPrefix = 'vivica-memory';
-    const parts: Record<string, unknown>[] = [];
+    const memoryScopeRaw = Storage.get(MEMORY_SCOPE_KEY, 'profile');
+    const memoryScope = memoryScopeRaw === 'global' ? 'global' : 'profile';
+    const includeProfile = memoryScope === 'profile';
 
     // Safely get memory from storage with validation
     const getValidatedMemory = (key: string) => {
@@ -349,58 +370,102 @@ const Index = () => {
       }
     };
 
-    const globalMem = getValidatedMemory(`${memoryKeyPrefix}-global`);
-    const profileMem = profileId 
-      ? getValidatedMemory(`${memoryKeyPrefix}-profile-${profileId}`) 
+    const globalMem = getValidatedMemory(`${memoryKeyPrefix}-global`) as StoredMemory | null;
+    const profileMem = includeProfile && profileId
+      ? (getValidatedMemory(`${memoryKeyPrefix}-profile-${profileId}`) as StoredMemory | null)
       : null;
-
-    if (globalMem) {
-      try { parts.push(JSON.parse(globalMem)); } catch { /* ignore */ }
-    }
-    if (profileMem) {
-      try { parts.push(JSON.parse(profileMem)); } catch { /* ignore */ }
-    }
 
     // Remove any stale legacy key
     localStorage.removeItem('vivica-memory');
 
+    const pickValue = (profileValue?: string, globalValue?: string) =>
+      includeProfile && profileValue ? profileValue : globalValue;
+
+    const instructionParts: string[] = [];
+    const instructionSeen = new Set<string>();
+    const addInstruction = (value?: string) => {
+      const trimmed = value?.trim();
+      if (!trimmed) return;
+      const key = trimmed.toLowerCase();
+      if (instructionSeen.has(key)) return;
+      instructionSeen.add(key);
+      instructionParts.push(trimmed);
+    };
+
+    const noteParts: string[] = [];
+    const noteSeen = new Set<string>();
+    const addNote = (value?: string) => {
+      const trimmed = value?.trim();
+      if (!trimmed) return;
+      const key = trimmed.toLowerCase();
+      if (noteSeen.has(key)) return;
+      noteSeen.add(key);
+      noteParts.push(trimmed);
+    };
+
     let prompt = '';
-    for (const memory of parts) {
-      if (memory.identity?.name) {
-        prompt += `The user's name is ${memory.identity.name}. `;
-      }
-      if (memory.identity?.pronouns) {
-        prompt += `Use ${memory.identity.pronouns} pronouns when referring to the user. `;
-      }
-      if (memory.identity?.occupation) {
-        prompt += `The user works as ${memory.identity.occupation}. `;
-      }
-      if (memory.identity?.location) {
-        prompt += `The user is located in ${memory.identity.location}. `;
-      }
-      if (memory.personality?.tone) {
-        prompt += `Adopt a ${memory.personality.tone} tone when responding. `;
-      }
-      if (memory.personality?.style) {
-        prompt += `Use a ${memory.personality.style} communication style. `;
-      }
-      if (memory.personality?.interests) {
-        prompt += `The user is interested in: ${memory.personality.interests}. `;
-      }
-      if (memory.customInstructions) {
-        prompt += `${memory.customInstructions} `;
-      }
-      if (memory.systemNotes) {
-        prompt += `Additional notes: ${memory.systemNotes}`;
-      }
+    const name = pickValue(profileMem?.identity?.name, globalMem?.identity?.name);
+    if (name) {
+      prompt += `The user's name is ${name}. `;
+    }
+    const pronouns = pickValue(profileMem?.identity?.pronouns, globalMem?.identity?.pronouns);
+    if (pronouns) {
+      prompt += `Use ${pronouns} pronouns when referring to the user. `;
+    }
+    const occupation = pickValue(profileMem?.identity?.occupation, globalMem?.identity?.occupation);
+    if (occupation) {
+      prompt += `The user works as ${occupation}. `;
+    }
+    const location = pickValue(profileMem?.identity?.location, globalMem?.identity?.location);
+    if (location) {
+      prompt += `The user is located in ${location}. `;
+    }
+    const tone = pickValue(profileMem?.personality?.tone, globalMem?.personality?.tone);
+    if (tone) {
+      prompt += `Adopt a ${tone} tone when responding. `;
+    }
+    const style = pickValue(profileMem?.personality?.style, globalMem?.personality?.style);
+    if (style) {
+      prompt += `Use a ${style} communication style. `;
+    }
+    const interests = pickValue(profileMem?.personality?.interests, globalMem?.personality?.interests);
+    if (interests) {
+      prompt += `The user is interested in: ${interests}. `;
+    }
+    addInstruction(globalMem?.customInstructions);
+    if (includeProfile) {
+      addInstruction(profileMem?.customInstructions);
+    }
+    for (const instruction of instructionParts) {
+      prompt += `${instruction} `;
+    }
+    addNote(globalMem?.systemNotes);
+    if (includeProfile) {
+      addNote(profileMem?.systemNotes);
+    }
+    for (const note of noteParts) {
+      prompt += `Additional notes: ${note} `;
     }
 
     try {
       const globalMems = await getMemories(undefined, 'global');
-      const profileMems = await getMemories(profileId, 'profile');
+      const profileMems = includeProfile && profileId
+        ? await getMemories(profileId, 'profile')
+        : [];
       const combined = [...globalMems, ...profileMems];
       if (combined.length) {
-        const list = combined.map(m => `- ${m.content}`).join('\n');
+        const seen = new Set<string>();
+        const unique = combined.map(m => {
+          const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);
+          return content.trim();
+        }).filter((content) => {
+          if (!content) return false;
+          const key = content.toLowerCase();
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        const list = unique.map(content => `- ${content}`).join('\n');
         prompt += `${prompt ? '\n\n' : ''}Stored Facts:\n${list}`;
       }
     } catch (e) {

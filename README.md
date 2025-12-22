@@ -25,6 +25,7 @@
   - **Global memory**: persistent knowledge shared by all profiles.
   - **Profile-specific memory**: each persona can remember unique facts or stories.
   - Memories are summarized and saved with one click, can be edited or deleted, and are included as context in future chats.
+  - Memory scope controls whether prompts use global-only or global + current profile memories.
 
 - **Save & Summarize:**  
   - Click the bookmark icon to save a conversation summary and key facts to memory, with Vivica’s voice and style.
@@ -41,7 +42,7 @@
   - Up-to-the-minute local weather in the sidebar/welcome screen.
 
 - **Animated RSS News Ticker:**
-  - Scrolls through the latest headlines from your chosen (or default ABC News) RSS feed.
+  - Scrolls through the latest headlines from your chosen RSS feeds (or app defaults).
   - Click a headline to inject it into chat—Vivica now fetches the full article via a CORS proxy,
     cleans it with the Readability algorithm, and then summarizes it with her usual flair.
 
@@ -55,6 +56,8 @@
 - Floating "scroll to bottom" button appears when new messages arrive while you're reading earlier chat history.
 - **Improved Code Blocks:**
   - Code snippets now have Prism-based syntax highlighting, a dark background, and a copy-to-clipboard button.
+- **Full Backup & Restore:**
+  - Export or import everything in one file: settings, profiles, memories, conversations, cached welcomes, and keys.
 
 ---
 
@@ -83,8 +86,23 @@ CI runs lint, type check, and build on every push/PR to `main`.
 - **Memory:**  
   Save important chat moments, facts, or summaries to memory.  
   Edit or delete anytime in the Memory Manager.
+- **Backup/Restore:**  
+  Use Settings -> Backup Everything / Restore Backup to move all data between devices.
 - **RSS/Weather:**  
   Customize in settings, or enjoy the defaults.
+- **Backup/Restore:**  
+  Use Settings -> Backup Everything / Restore Backup to move all data between devices.
+
+---
+
+## Data Storage
+
+- **localStorage (vivica-*)**: settings, profiles, theme, current conversation id, memory scope, model selection, API key rotation state, feature toggles.
+- **localStorage (non-prefixed)**: `braveApiKey`, `openrouter-api-key`.
+- **IndexedDB (vivica-db)**:
+  - `conversations`: full conversation history.
+  - `memories`: saved memory entries (global and profile-scoped).
+  - `welcomeMessages`: cached welcome prompts for offline use.
 
 ---
 

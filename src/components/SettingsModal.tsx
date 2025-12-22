@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { X, AlertTriangle, Key, Save, Trash } from "lucide-react";
-import { STORAGE_KEYS } from "@/utils/storage";
+import { exportAllData, importAllData } from "@/utils/storage";
 import {
   Dialog,
   DialogContent,
@@ -189,17 +189,7 @@ export const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
                 variant="outline"
                 onClick={async () => {
                   try {
-                    const data: Record<string, unknown> = {};
-                    Object.values(STORAGE_KEYS).forEach(key => {
-                      const value = localStorage.getItem(key);
-                      if (value) {
-                        try {
-                          data[key] = JSON.parse(value);
-                        } catch {
-                          data[key] = value;
-                        }
-                      }
-                    });
+                    const data = await exportAllData();
                     const filename = `vivica-backup-${new Date().toISOString().split('T')[0]}.json`;
                     await exportJsonFile(filename, data);
                     toast.success('Backup created successfully!');
@@ -227,13 +217,14 @@ export const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
                         const contents = event.target?.result as string;
                         const data = JSON.parse(contents);
                         if (typeof data === 'object' && data !== null) {
-                          Object.entries(data).forEach(([key, value]) => {
-                            if (Object.values(STORAGE_KEYS).includes(key as string)) {
-                              localStorage.setItem(key, JSON.stringify(value));
-                            }
-                          });
-                          toast.success('Backup restored successfully!');
-                          setTimeout(() => window.location.reload(), 1000);
+                          importAllData(data as Record<string, unknown>)
+                            .then(() => {
+                              toast.success('Backup restored successfully!');
+                              setTimeout(() => window.location.reload(), 1000);
+                            })
+                            .catch(() => {
+                              toast.error('Failed to restore backup');
+                            });
                         }
                       } catch (err) {
                         toast.error('Invalid backup file');

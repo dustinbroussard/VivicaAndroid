@@ -1,6 +1,6 @@
 // Readability gives us a clean article body from messy HTML pages.
 import { Readability } from '@mozilla/readability';
-import { DEFAULT_RSS_FEEDS, CORS_PROXY } from '@/utils/constants';
+import { DEFAULT_RSS_FEEDS, buildProxyUrl } from '@/utils/constants';
 
 export interface Headline {
   title: string;
@@ -23,7 +23,7 @@ export async function fetchRSSHeadlines(): Promise<Headline[]> {
 
   for (const url of feeds) {
     try {
-      const resp = await fetch(`${CORS_PROXY}${url}`);
+      const resp = await fetch(buildProxyUrl(url));
       const data = await resp.text();
       if (!data) continue;
 
@@ -53,7 +53,7 @@ export async function fetchRSSHeadlines(): Promise<Headline[]> {
   if (headlines.length === 0 && userFeeds.length) {
     for (const url of DEFAULT_FEEDS) {
       try {
-        const resp = await fetch(`${CORS_PROXY}${url}`);
+        const resp = await fetch(buildProxyUrl(url));
         const data = await resp.text();
         if (!data) continue;
 
@@ -87,7 +87,7 @@ export async function fetchRSSHeadlines(): Promise<Headline[]> {
 // Fetch the full article HTML via a CORS proxy and extract just the readable
 // content using Mozilla's Readability algorithm.
 export async function fetchArticleText(url: string): Promise<string> {
-  const resp = await fetch(`${CORS_PROXY}${url}`);
+  const resp = await fetch(buildProxyUrl(url));
   const html = await resp.text();
 
   // Parse the HTML string in a detached document to avoid leaking scripts/styles

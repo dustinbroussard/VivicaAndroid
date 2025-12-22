@@ -1,5 +1,14 @@
 // Storage utilities with graceful fallbacks
-import { getAllMemoriesFromDb, getDb, type MemoryEntry } from './indexedDb';
+import {
+  clearAllConversationsFromDb,
+  clearAllMemoriesFromDb,
+  getAllConversationsFromDb,
+  getAllMemoriesFromDb,
+  getCachedWelcomeMessages,
+  getDb,
+  type ConversationEntry,
+  type MemoryEntry
+} from './indexedDb';
 
 // Minimal Profile shape used for exports/imports and default creation
 type Profile = {
@@ -191,17 +200,30 @@ export const STORAGE_KEYS = {
 } as const;
 
 export async function exportAllData(): Promise<Record<string, unknown>> {
-  const data: Record<string, unknown> = {};
-  Object.values(STORAGE_KEYS).forEach(key => {
+  const data: Record<string, unknown> = { _backupVersion: 2 };
+  const localSnapshot: Record<string, unknown> = {};
+  const extraKeys = ['braveApiKey', 'openrouter-api-key'];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (!key || !key.startsWith('vivica-')) continue;
     const value = localStorage.getItem(key);
-    if (value) {
-      try {
-        data[key] = JSON.parse(value);
-      } catch {
-        data[key] = value;
-      }
+    if (value === null) continue;
+    try {
+      localSnapshot[key] = JSON.parse(value);
+    } catch {
+      localSnapshot[key] = value;
     }
-  });
+  }
+  for (const key of extraKeys) {
+    const value = localStorage.getItem(key);
+    if (value === null) continue;
+    try {
+      localSnapshot[key] = JSON.parse(value);
+    } catch {
+      localSnapshot[key] = value;
+    }
+  }
+  data._localStorage = localSnapshot;
 
   // Include conversation summaries from IndexedDB
   try {
@@ -213,19 +235,67 @@ export async function exportAllData(): Promise<Record<string, unknown>> {
     console.warn('Failed to load conversation memories for export', e);
   }
 
+  try {
+    const conversations = await getAllConversationsFromDb();
+    if (conversations.length) {
+      data['_conversations'] = conversations;
+    }
+  } catch (e) {
+    console.warn('Failed to load conversations for export', e);
+  }
+
+  try {
+    const welcomeMessages = await getCachedWelcomeMessages();
+    if (welcomeMessages.length) {
+      data['_welcomeMessages'] = welcomeMessages;
+    }
+  } catch (e) {
+    console.warn('Failed to load welcome messages for export', e);
+  }
+
   return data;
 }
 
 export async function importAllData(data: Record<string, unknown>): Promise<void> {
+  const localSnapshot =
+    data._localStorage && typeof data._localStorage === 'object'
+      ? (data._localStorage as Record<string, unknown>)
+      : null;
+
+  if (localSnapshot) {
+    const keysToClear: string[] = [];
+    const extraKeys = ['braveApiKey', 'openrouter-api-key'];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('vivica-')) {
+        keysToClear.push(key);
+      }
+    }
+    for (const key of extraKeys) {
+      if (!keysToClear.includes(key)) {
+        keysToClear.push(key);
+      }
+    }
+    keysToClear.forEach((key) => localStorage.removeItem(key));
+    Object.entries(localSnapshot).forEach(([key, value]) => {
+      if (key.startsWith('vivica-')) {
+        Storage.set(key, value);
+      } else if (extraKeys.includes(key)) {
+        localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value));
+      }
+    });
+  } else {
     Object.entries(data).forEach(([key, value]) => {
       if (Object.values(STORAGE_KEYS).includes(key as string)) {
         Storage.set(key, value);
       }
     });
+  }
 
   // Import conversation summaries if present
   if (data['_conversationMemories']) {
     try {
+      await clearAllMemoriesFromDb();
       const memories = data['_conversationMemories'] as MemoryEntry[];
       const db = await getDb();
       const tx = db.transaction('memories', 'readwrite');
@@ -235,6 +305,37 @@ export async function importAllData(data: Record<string, unknown>): Promise<void
       await tx.done;
     } catch (e) {
       console.warn('Failed to import conversation memories', e);
+    }
+  }
+
+  if (data['_conversations']) {
+    try {
+      await clearAllConversationsFromDb();
+      const conversations = data['_conversations'] as ConversationEntry[];
+      const db = await getDb();
+      const tx = db.transaction('conversations', 'readwrite');
+      for (const conversation of conversations) {
+        await tx.store.put(conversation);
+      }
+      await tx.done;
+    } catch (e) {
+      console.warn('Failed to import conversations', e);
+    }
+  }
+
+  if (data['_welcomeMessages']) {
+    try {
+      const welcomeMessages = data['_welcomeMessages'] as { text: string; createdAt: string }[];
+      const db = await getDb();
+      const tx = db.transaction('welcomeMessages', 'readwrite');
+      await tx.store.clear();
+      const recent = welcomeMessages.slice(-10);
+      for (const message of recent) {
+        await tx.store.add({ text: message.text, createdAt: message.createdAt });
+      }
+      await tx.done;
+    } catch (e) {
+      console.warn('Failed to import welcome messages', e);
     }
   }
 
