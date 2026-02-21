@@ -36,7 +36,7 @@ export const ProfileSwitcher = ({
   const [showModal, setShowModal] = useState(false);
 
   const loadProfiles = () => {
-    let list: Profile[] = Storage.get(STORAGE_KEYS.PROFILES, [] as Profile[]);
+    const list: Profile[] = Storage.get(STORAGE_KEYS.PROFILES, [] as Profile[]);
 
     if (!list.some(p => p.isVivica)) {
       // Auto-recreate Vivica if missing
