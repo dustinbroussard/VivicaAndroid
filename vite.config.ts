@@ -13,9 +13,21 @@ const manifest = JSON.parse(
 export default defineConfig(({ mode }) => ({
   // Allow overriding base for GitHub Pages via env
   base: process.env.VITE_BASE || './',
+  preview: {
+    headers: {
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
+      'Permissions-Policy': 'camera=(), microphone=(), geolocation=()'
+    }
+  },
   server: {
     host: "::",
     port: 8080,
+    headers: {
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
+      'Permissions-Policy': 'camera=(), microphone=(), geolocation=()'
+    }
   },
   plugins: [
     react(),

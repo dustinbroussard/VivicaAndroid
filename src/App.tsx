@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/hooks/useTheme";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import InstallPrompt from "./components/InstallPrompt";
+import { AppErrorBoundary } from "./components/AppErrorBoundary";
 
 // Note: BrowserRouter does not support future flags; using default behavior
 
@@ -16,17 +17,19 @@ const AppContent = () => {
   console.log("App component rendering...");
 
   return (
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <InstallPrompt />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <AppErrorBoundary>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <InstallPrompt />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </AppErrorBoundary>
   );
 };
 
