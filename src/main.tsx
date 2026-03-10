@@ -8,11 +8,6 @@ import { registerSW } from 'virtual:pwa-register';
 if ('serviceWorker' in navigator) {
   registerSW({
     immediate: true,
-    onRegistered(registration) {
-      if (registration) {
-        console.log('Service Worker registered')
-      }
-    },
     onRegisterError(error) {
       console.error('Service Worker registration failed', error)
     }

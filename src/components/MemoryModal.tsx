@@ -5,6 +5,7 @@ import { FaEdit, FaTrash } from "react-icons/fa";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog";
@@ -276,6 +277,9 @@ export const MemoryModal = ({
               {isActive ? 'Active' : 'Inactive'}
             </div>
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Configure memory behavior and manage saved memory entries.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
@@ -505,8 +509,7 @@ export const MemoryModal = ({
                             // Handle cases where content might be an object
                             typeof entry.content === 'string'
                               ? entry.content
-                              : (console.log('Non-string memory entry', entry.content),
-                                JSON.stringify(entry.content))
+                              : JSON.stringify(entry.content)
                           }
                         </div>
                         <div className="text-xs text-muted-foreground flex items-center gap-2">

@@ -1,5 +1,5 @@
 
-import { forwardRef, useEffect, useRef, useState, useCallback } from "react";
+import { forwardRef, memo, useEffect, useRef, useState, useCallback, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { RotateCcw, Copy, Pencil } from "lucide-react";
@@ -65,16 +65,6 @@ const getUserName = () => {
   }
 };
 
-const getProfileName = (id?: string) => {
-  try {
-    const list: { id: string; name: string }[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.PROFILES) || '[]');
-    const pid = id || localStorage.getItem(STORAGE_KEYS.CURRENT_PROFILE);
-    return list.find((p) => p.id === pid)?.name || 'Vivica';
-  } catch {
-    return 'Vivica';
-  }
-};
-
 interface Message {
   id: string;
   content: string;
@@ -83,6 +73,7 @@ interface Message {
   failed?: boolean;
   isCodeResponse?: boolean;
   codeLoading?: boolean;
+  profileId?: string;
 }
 
 interface Conversation {
@@ -114,20 +105,247 @@ interface ChatBodyProps {
   onNewChat: () => void;
 }
 
+interface MessageRowProps {
+  message: Message;
+  index: number;
+  lastIndex: number;
+  isTyping: boolean;
+  activeProfileId?: string;
+  profileNameById: Record<string, string>;
+  userName: string;
+  onCopyMessage: (content: string) => void;
+  onRetryMessage?: (messageId: string) => void;
+  onRegenerateMessage?: (messageId: string) => void;
+  onEditMessage?: (message: Message) => void;
+}
+
+const MessageRow = memo(({
+  message,
+  index,
+  lastIndex,
+  isTyping,
+  activeProfileId,
+  profileNameById,
+  userName,
+  onCopyMessage,
+  onRetryMessage,
+  onRegenerateMessage,
+  onEditMessage,
+}: MessageRowProps) => {
+  const formatTimestamp = (timestamp: Date) => {
+    return timestamp.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+  const isLastMessage = index === lastIndex;
+  const markdownComponents = useMemo(() => ({
+    code({ inline, className, children, ...props }: { inline?: boolean; className?: string; children?: unknown }) {
+      if (inline) {
+        return (
+          <code className="inline-code" {...props}>{children}</code>
+        );
+      }
+
+      const codeText = Array.isArray(children)
+        ? children.join('')
+        : String(children ?? '');
+      const isStreaming = isTyping && isLastMessage;
+      const isPartialCode = codeText.trim() === '' || !codeText.trim().endsWith('```');
+
+      if (isStreaming && isPartialCode) {
+        return <CodeBlockLoader />;
+      }
+
+      return (
+        <CodeBlock className={className}>{children}</CodeBlock>
+      );
+    }
+  }), [isTyping, isLastMessage]);
+
+  return (
+    <div
+      className={`flex flex-col ${
+        message.role === 'user' ? 'items-end' : 'items-start'
+      } mb-2 ${message.isCodeResponse ? '' : 'slide-up'} group`}
+    >
+      <div
+        className={`flex items-center gap-2 mb-0.5 ${
+          message.role === 'user' ? 'flex-row-reverse' : ''
+        }`}
+      >
+        {message.role === 'assistant' ? (
+          <>
+            <FaRobot className="w-4 h-4" />
+            <span className="font-medium text-xs text-muted-foreground">
+              {profileNameById[message.profileId || ''] || 'Vivica'}
+            </span>
+          </>
+        ) : (
+          <>
+            <FaUser className="w-4 h-4" />
+            <span className="font-medium text-xs text-muted-foreground">
+              {userName}
+            </span>
+          </>
+        )}
+      </div>
+
+      <div
+        className={`message-bubble ${message.role} ${
+          message.isCodeResponse ? 'code-bubble' : ''
+        } ${
+          message.failed ? 'border-accent/50 bg-accent/10' : ''
+        } px-3 py-2 rounded-[2rem] max-w-[95vw] sm:max-w-2xl break-words ${
+          message.role === 'user'
+            ? 'rounded-br-none ml-6 mr-6'
+            : 'rounded-bl-none mr-6 ml-6'
+        } ${
+          isLastMessage ? 'glow-once' : ''
+        }`}
+      >
+        <div className="prose break-words max-w-none text-sm leading-snug">
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+            {
+              typeof message.content === 'string'
+                ? message.content
+                : JSON.stringify(message.content)
+            }
+          </ReactMarkdown>
+          {message.codeLoading && <CodeBlockLoader />}
+        </div>
+
+        <div className="flex items-center justify-between mt-2 gap-2">
+          <div className={`flex items-center gap-2 text-xs opacity-60 ${
+            message.role === 'user' ? 'text-right' : 'text-left'
+          }`}>
+            {message.isCodeResponse && (
+              <span className="inline-block w-2 h-2 rounded-full bg-blue-500/70"
+                title="Code response" />
+            )}
+            {message.failed && (
+              <span className="text-red-500/80" title="Failed message">⚠️</span>
+            )}
+            {formatTimestamp(message.timestamp)}
+            {message.profileId !== activeProfileId && (
+              <span className="px-1 py-0.5 rounded text-[10px] bg-muted/50">
+                {profileNameById[message.profileId || ''] || 'Vivica'}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() =>
+                onCopyMessage(
+                  typeof message.content === 'string'
+                    ? message.content
+                    : JSON.stringify(message.content)
+                )
+              }
+              className="h-6 w-6 p-0"
+            >
+              <Copy className="w-3 h-3" />
+            </Button>
+
+            {message.role === 'user' && onEditMessage && (
+              (() => {
+                const isLastUser =
+                  (index === lastIndex && message.role === 'user') ||
+                  (index === lastIndex - 1 && message.role === 'assistant');
+                return isLastUser ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onEditMessage(message)}
+                    className="h-6 w-6 p-0"
+                  >
+                    <Pencil className="w-3 h-3" />
+                  </Button>
+                ) : null;
+              })()
+            )}
+
+            {message.role === 'assistant' && onRegenerateMessage && (
+              isLastMessage ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onRegenerateMessage(message.id)}
+                  className="h-6 w-6 p-0"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                </Button>
+              ) : null
+            )}
+
+            {message.failed && onRetryMessage && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onRetryMessage(message.id)}
+                className="h-6 w-6 p-0 text-accent hover:text-accent/90"
+              >
+                <RotateCcw className="w-3 h-3" />
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}, (prev, next) =>
+  prev.message === next.message &&
+  prev.index === next.index &&
+  prev.lastIndex === next.lastIndex &&
+  prev.isTyping === next.isTyping &&
+  prev.activeProfileId === next.activeProfileId &&
+  prev.userName === next.userName &&
+  prev.profileNameById === next.profileNameById
+);
+
 export const ChatBody = forwardRef<HTMLDivElement, ChatBodyProps>(
   ({ conversation, currentProfile, isTyping, onRetryMessage, onRegenerateMessage, onEditMessage, onSendMessage, onNewChat }, ref) => {
-    const messagesEndRef = useRef<HTMLDivElement>(null);
     const { color, variant } = useTheme();
     const logoSrc = `/logo-${color}${variant}.png`;
     const [welcomeMsg, setWelcomeMsg] = useState('');
     const [welcomeError, setWelcomeError] = useState(false);
     const [animateWelcome, setAnimateWelcome] = useState(false);
     const lastWelcomeRef = useRef('');
+    const welcomeRequestIdRef = useRef(0);
+    const welcomeLoadingRef = useRef(false);
+    const shouldAutoScrollRef = useRef(true);
+    const scrollRafRef = useRef<number | null>(null);
     const lastMessage = conversation?.messages?.[conversation.messages.length - 1];
     const showThinking = isTyping && !(lastMessage?.isCodeResponse);
+    const userName = useMemo(() => getUserName(), []);
+    const profileNameById = useMemo(() => {
+      try {
+        const list: { id: string; name: string }[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.PROFILES) || '[]');
+        return list.reduce((acc, item) => {
+          acc[item.id] = item.name;
+          return acc;
+        }, {} as Record<string, string>);
+      } catch {
+        return {};
+      }
+    }, []);
+
+    const getScrollContainer = useCallback(() => {
+      if (ref && typeof ref !== 'function') {
+        return ref.current;
+      }
+      return null;
+    }, [ref]);
 
     const fetchWelcome = useCallback(async () => {
       if (!conversation || conversation.messages.length) return;
+      if (welcomeLoadingRef.current) return;
+      const requestId = ++welcomeRequestIdRef.current;
+      const canApply = () => welcomeRequestIdRef.current === requestId;
+      welcomeLoadingRef.current = true;
 
       setWelcomeError(false);
 
@@ -174,6 +392,7 @@ export const ChatBody = forwardRef<HTMLDivElement, ChatBodyProps>(
         }
 
         if (text && text.length <= 120) {
+          if (!canApply()) return;
           lastWelcomeRef.current = text;
           setWelcomeMsg(text);
           saveWelcomeMessage(text);
@@ -188,6 +407,7 @@ export const ChatBody = forwardRef<HTMLDivElement, ChatBodyProps>(
           const cached = await getCachedWelcomeMessages();
           const last = cached.sort((a,b) => (b.id! - a.id!))[0];
           if (last?.text) {
+            if (!canApply()) return;
             setWelcomeMsg(last.text);
             setWelcomeError(false);
             return;
@@ -196,23 +416,42 @@ export const ChatBody = forwardRef<HTMLDivElement, ChatBodyProps>(
           // ignore cache errors
         }
         // Use rotating snarky fallback welcomes and allow click-to-retry
+        if (!canApply()) return;
         setWelcomeError(true);
         setWelcomeMsg(getNextFallbackWelcome());
+      } finally {
+        if (canApply()) {
+          welcomeLoadingRef.current = false;
+        }
       }
     }, [conversation]);
 
-    const scrollToBottom = () => {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    };
-
-    // Auto-scroll only when the user is already near the bottom. This allows
-    // scrolling up to read older messages without being snapped back down.
     useEffect(() => {
-      const el = (ref as React.RefObject<HTMLDivElement>)?.current;
+      const el = getScrollContainer();
       if (!el) return;
-      const atBottom = el.scrollHeight - el.scrollTop <= el.clientHeight + 64;
-      if (atBottom) scrollToBottom();
-    }, [conversation?.messages, isTyping, ref]);
+      const onScroll = () => {
+        shouldAutoScrollRef.current = el.scrollHeight - el.scrollTop <= el.clientHeight + 64;
+      };
+      onScroll();
+      el.addEventListener('scroll', onScroll, { passive: true });
+      return () => el.removeEventListener('scroll', onScroll);
+    }, [getScrollContainer]);
+
+    useEffect(() => {
+      const el = getScrollContainer();
+      if (!el || !shouldAutoScrollRef.current) return;
+      if (scrollRafRef.current) {
+        cancelAnimationFrame(scrollRafRef.current);
+      }
+      scrollRafRef.current = requestAnimationFrame(() => {
+        el.scrollTop = el.scrollHeight;
+      });
+      return () => {
+        if (scrollRafRef.current) {
+          cancelAnimationFrame(scrollRafRef.current);
+        }
+      };
+    }, [conversation?.messages.length, lastMessage?.content, isTyping, getScrollContainer]);
 
     // Fetch a dynamic welcome message from the LLM whenever the welcome screen is visible
     useEffect(() => {
@@ -228,6 +467,8 @@ export const ChatBody = forwardRef<HTMLDivElement, ChatBodyProps>(
       document.addEventListener('visibilitychange', onVisibility);
 
       return () => {
+        welcomeRequestIdRef.current += 1;
+        welcomeLoadingRef.current = false;
         window.removeEventListener('focus', onFocus);
         document.removeEventListener('visibilitychange', onVisibility);
       };
@@ -240,18 +481,10 @@ export const ChatBody = forwardRef<HTMLDivElement, ChatBodyProps>(
       return () => clearTimeout(t);
     }, [welcomeMsg]);
 
-
-    const handleCopyMessage = (content: string) => {
+    const handleCopyMessage = useCallback((content: string) => {
       navigator.clipboard.writeText(content);
       toast.success("Message copied to clipboard");
-    };
-
-    const formatTimestamp = (timestamp: Date) => {
-      return timestamp.toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    };
+    }, []);
 
 
     return (
@@ -282,174 +515,21 @@ export const ChatBody = forwardRef<HTMLDivElement, ChatBodyProps>(
           // Messages
           <div className="space-y-4 sm:space-y-6 max-w-full sm:max-w-4xl mx-auto overflow-x-hidden">
             {conversation.messages.map((message, index) => (
-              <div
+              <MessageRow
                 key={message.id}
-                className={`flex flex-col ${
-                  message.role === 'user' ? 'items-end' : 'items-start'
-                } mb-2 ${message.isCodeResponse ? '' : 'slide-up'} group`}
-              >
-                <div
-                  className={`flex items-center gap-2 mb-0.5 ${
-                    message.role === 'user' ? 'flex-row-reverse' : ''
-                  }`}
-                >
-                  {message.role === 'assistant' ? (
-                    <>
-                      <FaRobot className="w-4 h-4" />
-                      <span className="font-medium text-xs text-muted-foreground">
-                        {getProfileName(message.profileId)}
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <FaUser className="w-4 h-4" />
-                      <span className="font-medium text-xs text-muted-foreground">
-                        {getUserName()}
-                      </span>
-                    </>
-                  )}
-                </div>
-
-                  
-                  <div
-                    className={`message-bubble ${message.role} ${
-                      message.isCodeResponse ? 'code-bubble' : ''
-                    } ${
-                      message.failed ? 'border-accent/50 bg-accent/10' : ''
-                    } px-3 py-2 rounded-[2rem] max-w-[95vw] sm:max-w-2xl break-words ${
-                      message.role === 'user'
-                        ? 'rounded-br-none ml-6 mr-6'
-                        : 'rounded-bl-none mr-6 ml-6'
-                    } ${
-                      index === conversation?.messages.length - 1 ? 'glow-once' : ''
-                    }`}
-                  >
-                    <div className="prose break-words max-w-none text-sm leading-snug">
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        components={{
-                          code({ node, inline, className, children, ...props }) {
-                            if (inline) {
-                              return (
-                                <code className="inline-code" {...props}>{children}</code>
-                              );
-                            }
-                            
-                            // Check if we're streaming and this is a partial code block
-                            const isStreaming = isTyping && index === conversation.messages.length - 1;
-                            const isPartialCode = typeof children === 'string' && 
-                              (children.trim() === '' || 
-                               !children.trim().endsWith('```'));
-                            
-                            if (isStreaming && isPartialCode) {
-                              return <CodeBlockLoader />;
-                            }
-                            
-                            return (
-                              <CodeBlock className={className}>{children}</CodeBlock>
-                            );
-                          }
-                        }}
-                      >
-                        {
-                          // Avoid rendering raw objects like [object Object]
-                          // If the message content isn't a string, log it and
-                          // fall back to JSON so the UI stays readable
-                          typeof message.content === 'string'
-                            ? message.content
-                            : (console.log('Non-string message', message.content),
-                              JSON.stringify(message.content))
-                        }
-                      </ReactMarkdown>
-                      {message.codeLoading && <CodeBlockLoader />}
-                    </div>
-                    
-                    <div className="flex items-center justify-between mt-2 gap-2">
-                      <div className={`flex items-center gap-2 text-xs opacity-60 ${
-                        message.role === 'user' ? 'text-right' : 'text-left'
-                      }`}>
-                        {message.isCodeResponse && (
-                          <span className="inline-block w-2 h-2 rounded-full bg-blue-500/70" 
-                                title="Code response" />
-                        )}
-                        {message.failed && (
-                          <span className="text-red-500/80" title="Failed message">⚠️</span>
-                        )}
-                        {formatTimestamp(message.timestamp)}
-                        {message.profileId !== currentProfile?.id && (
-                          <span className="px-1 py-0.5 rounded text-[10px] bg-muted/50">
-                            {getProfileName(message.profileId)}
-                          </span>
-                        )}
-                      </div>
-                      
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            handleCopyMessage(
-                              typeof message.content === 'string'
-                                ? message.content
-                                : JSON.stringify(message.content)
-                            )
-                          }
-                          className="h-6 w-6 p-0"
-                        >
-                          <Copy className="w-3 h-3" />
-                        </Button>
-
-                        {message.role === 'user' && onEditMessage && (
-                          (() => {
-                            const lastIndex = conversation?.messages.length ? conversation.messages.length - 1 : -1;
-                            const isLastUser =
-                              (index === lastIndex && message.role === 'user') ||
-                              (index === lastIndex - 1 && conversation?.messages[lastIndex].role === 'assistant');
-                            return isLastUser ? (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => onEditMessage(message)}
-                                className="h-6 w-6 p-0"
-                              >
-                                <Pencil className="w-3 h-3" />
-                              </Button>
-                            ) : null;
-                          })()
-                        )}
-
-                        {message.role === 'assistant' && onRegenerateMessage && (
-                          index === conversation?.messages.length - 1 ? (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => onRegenerateMessage(message.id)}
-                              className="h-6 w-6 p-0"
-                            >
-                              <RotateCcw className="w-3 h-3" />
-                            </Button>
-                          ) : null
-                        )}
-
-                        {message.failed && onRetryMessage && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => onRetryMessage(message.id)}
-                            className="h-6 w-6 p-0 text-accent hover:text-accent/90"
-                          >
-                            <RotateCcw className="w-3 h-3" />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  
-              </div>
+                message={message}
+                index={index}
+                lastIndex={conversation.messages.length - 1}
+                isTyping={isTyping}
+                activeProfileId={currentProfile?.id}
+                profileNameById={profileNameById}
+                userName={userName}
+                onCopyMessage={handleCopyMessage}
+                onRetryMessage={onRetryMessage}
+                onRegenerateMessage={onRegenerateMessage}
+                onEditMessage={onEditMessage}
+              />
             ))}
-
-
-            <div ref={messagesEndRef} />
             {showThinking && (
               <div className="px-6 pt-2">
                 <ThinkingIndicator />

@@ -5,6 +5,7 @@ import { exportAllData, importAllData } from "@/utils/storage";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -78,6 +79,9 @@ export const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
             <Key className="w-5 h-5" />
             Settings
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Manage API keys, RSS feeds, and app preferences.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">

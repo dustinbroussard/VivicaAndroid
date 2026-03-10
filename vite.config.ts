@@ -4,10 +4,58 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { VitePWA } from "vite-plugin-pwa";
 import { readFileSync } from "fs";
+import type { ServerResponse } from "http";
+import type { Plugin } from "vite";
 
 const manifest = JSON.parse(
   readFileSync(path.resolve(__dirname, "public/manifest.json"), "utf-8")
 );
+
+function writeProxyError(res: ServerResponse, status: number, message: string) {
+  res.statusCode = status;
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.end(JSON.stringify({ error: message }));
+}
+
+function rssDevProxyPlugin(): Plugin {
+  return {
+    name: "rss-dev-proxy",
+    configureServer(server) {
+      server.middlewares.use("/api/rss-proxy", async (req, res) => {
+        try {
+          const parsed = new URL(req.url || "", "http://localhost");
+          const targetUrl = parsed.searchParams.get("url");
+
+          if (!targetUrl) {
+            writeProxyError(res, 400, "Missing url query parameter");
+            return;
+          }
+
+          const safeUrl = new URL(targetUrl);
+          if (!["http:", "https:"].includes(safeUrl.protocol)) {
+            writeProxyError(res, 400, "Only http/https URLs are supported");
+            return;
+          }
+
+          const upstream = await fetch(safeUrl.toString(), { redirect: "follow" });
+          if (!upstream.ok) {
+            writeProxyError(res, upstream.status, `Upstream request failed (${upstream.status})`);
+            return;
+          }
+
+          const body = await upstream.text();
+          res.statusCode = 200;
+          res.setHeader("Cache-Control", "no-store");
+          res.setHeader("Content-Type", upstream.headers.get("content-type") || "text/plain; charset=utf-8");
+          res.end(body);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Unknown proxy error";
+          writeProxyError(res, 502, message);
+        }
+      });
+    },
+  };
+}
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -17,7 +65,7 @@ export default defineConfig(({ mode }) => ({
     headers: {
       'X-Content-Type-Options': 'nosniff',
       'X-Frame-Options': 'DENY',
-      'Permissions-Policy': 'camera=(), microphone=(), geolocation=()'
+      'Permissions-Policy': 'camera=(), microphone=(), geolocation=(self)'
     }
   },
   server: {
@@ -26,11 +74,12 @@ export default defineConfig(({ mode }) => ({
     headers: {
       'X-Content-Type-Options': 'nosniff',
       'X-Frame-Options': 'DENY',
-      'Permissions-Policy': 'camera=(), microphone=(), geolocation=()'
+      'Permissions-Policy': 'camera=(), microphone=(), geolocation=(self)'
     }
   },
   plugins: [
     react(),
+    rssDevProxyPlugin(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['robots.txt', 'icons/*', 'uploads/*'],

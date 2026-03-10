@@ -1,61 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
-import { Storage } from '@/utils/storage';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Loader2, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { fetchArticleText } from '@/services/rssService';
-import { DEFAULT_RSS_FEEDS, buildProxyUrl } from '@/utils/constants';
-
-interface Headline {
-  title: string;
-  link: string;
-  description?: string;
-  source?: string;
-}
-
-const DEFAULT_FEEDS = DEFAULT_RSS_FEEDS;
-
-// Fetch RSS feeds via a CORS proxy and return basic info for each item.
-async function fetchRSSSummariesWithLinks(urls: string[]): Promise<Headline[]> {
-  const parser = new DOMParser();
-  const headlines: Headline[] = [];
-  
-  for (const url of urls) {
-    try {
-      const resp = await fetch(buildProxyUrl(url));
-      const data = await resp.text();
-      if (!data) continue;
-
-      const doc = parser.parseFromString(data, 'text/xml');
-      const items = doc.querySelectorAll('item');
-      
-      const domain = new URL(url).hostname.replace('www.', '');
-      
-      for (const item of items) {
-        const title = item.querySelector('title')?.textContent?.trim();
-        const link = item.querySelector('link')?.textContent?.trim();
-        const descNode = item.querySelector('description');
-        const contentNode = item.querySelector('content\\:encoded');
-        let description = contentNode?.textContent || descNode?.textContent || '';
-        description = description.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-
-        if (title && link) {
-          headlines.push({
-            title,
-            link,
-            description,
-            source: domain
-          });
-        }
-      }
-    } catch (err) {
-      console.debug('Failed to fetch RSS feed:', url, err);
-      continue;
-    }
-  }
-  return headlines.slice(0, 20); // Limit to 20 headlines
-}
+import { fetchArticleText, fetchRSSHeadlines, type Headline } from '@/services/rssService';
 
 interface RSSWidgetProps {
   onSendMessage: (content: string) => void;
@@ -76,30 +24,24 @@ export const RSSWidget = ({ onSendMessage, onNewChat }: RSSWidgetProps) => {
     const loadRSSFeeds = async () => {
       setLoading(true);
       setError('');
-      const settings = Storage.get('vivica-settings', { rssFeeds: '' });
-
-      const userFeeds = settings.rssFeeds
-        ? settings.rssFeeds.split(',').map((s: string) => s.trim()).filter(Boolean)
-        : [];
-      const feeds = userFeeds.length ? userFeeds : DEFAULT_FEEDS;
       
       try {
-        let fetchedHeadlines = await fetchRSSSummariesWithLinks(feeds);
-
-        // If user feeds produced nothing, try default fallbacks
-        if (fetchedHeadlines.length === 0 && userFeeds.length) {
-          fetchedHeadlines = await fetchRSSSummariesWithLinks(DEFAULT_FEEDS);
-        }
+        // Shared RSS service handles dev proxy, proxy env fallback, and default-feed fallback.
+        const fetchedHeadlines = await fetchRSSHeadlines({ limit: 20 });
 
         setHeadlines(fetchedHeadlines);
         if (fetchedHeadlines.length > 0) {
           setCurrentHeadline(fetchedHeadlines[0]);
+          setCurrentIndex(0);
         } else {
-          // As a last resort, do not show a scary error; just show nothing
+          setCurrentHeadline(null);
+          setCurrentIndex(0);
+          // As a last resort, do not show a scary error; just show nothing.
           setError('');
         }
-      } catch (err) {
-        console.error('Failed to load RSS feeds:', err);
+      } catch {
+        setCurrentHeadline(null);
+        setCurrentIndex(0);
         setError('Failed to load news feed');
       } finally {
         setLoading(false);

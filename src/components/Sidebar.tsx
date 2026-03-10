@@ -12,6 +12,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -278,6 +279,9 @@ export const Sidebar = ({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Rename Conversation</DialogTitle>
+            <DialogDescription className="sr-only">
+              Enter a new name for the selected conversation.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <Input

@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useOpenRouterModels, OpenRouterModel } from "@/hooks/useOpenRouterModels";
 import { ScrollArea } from "@/components/ui/scroll-area"; // add scroll area for fixed-height menu
+import { getModelReliabilitySummary } from "@/services/modelReliability";
 
 interface ModelSelectorProps {
   value: string;
@@ -42,6 +43,11 @@ export const ModelSelector = ({ value, onValueChange, placeholder = "Select a mo
   const selectedModel = useMemo(() => {
     return models.find((model) => model.id === value);
   }, [models, value]);
+
+  const reliabilityByModel = useMemo(() => {
+    const entries = models.map((model) => [model.id, getModelReliabilitySummary(model.id)] as const);
+    return Object.fromEntries(entries);
+  }, [models]);
 
   // Group models by provider for better organization
   const groupedModels = useMemo(() => {
@@ -174,6 +180,11 @@ export const ModelSelector = ({ value, onValueChange, placeholder = "Select a mo
                             </span>
                           )}
                         </div>
+                        {reliabilityByModel[model.id] && reliabilityByModel[model.id].attempts > 0 && (
+                          <span className="text-[11px] text-muted-foreground">
+                            {reliabilityByModel[model.id].label}
+                          </span>
+                        )}
                         {model.description && (
                           <span
                             className={cn(

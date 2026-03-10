@@ -9,20 +9,16 @@ import NotFound from "./pages/NotFound";
 import InstallPrompt from "./components/InstallPrompt";
 import { AppErrorBoundary } from "./components/AppErrorBoundary";
 
-// Note: BrowserRouter does not support future flags; using default behavior
-
 const queryClient = new QueryClient();
 
 const AppContent = () => {
-  console.log("App component rendering...");
-
   return (
     <AppErrorBoundary>
       <TooltipProvider>
         <Toaster />
         <Sonner />
         <InstallPrompt />
-        <BrowserRouter>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="*" element={<NotFound />} />

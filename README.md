@@ -43,7 +43,7 @@
 
 - **Animated RSS News Ticker:**
   - Scrolls through the latest headlines from your chosen RSS feeds (or app defaults).
-  - Click a headline to inject it into chat—Vivica now fetches the full article via a CORS proxy,
+  - Click a headline to inject it into chat—Vivica fetches the full article via a same-origin dev proxy or configured server proxy,
     cleans it with the Readability algorithm, and then summarizes it with her usual flair.
 
 - **Progressive Web App (PWA):**  
@@ -73,6 +73,15 @@
 - Lint: `npm run lint`
 - Type check: `npx tsc --noEmit`
 - Build: `npm run build`
+
+### RSS Proxy Configuration
+
+- Development (`npm run dev`): the Vite dev server exposes `/api/rss-proxy` and the app uses it automatically.
+- Production: set `VITE_RSS_PROXY_URL` to your own proxy endpoint.
+- `VITE_RSS_PROXY_URL` supports either:
+  - a template with `{url}` (example: `https://your-domain.com/api/rss?url={url}`)
+  - a plain endpoint where `?url=<encoded-url>` is appended automatically (example: `https://your-domain.com/api/rss`)
+- If no proxy is configured in production, Vivica falls back to direct RSS fetches for CORS-enabled feeds only.
 
 CI runs lint, type check, and build on every push/PR to `main`.
 

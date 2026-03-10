@@ -7,9 +7,10 @@ import { Textarea } from "@/components/ui/textarea";
 interface ChatFooterProps {
   onSendMessage: (message: string) => void;
   editingMessage?: string | null;
+  isSending?: boolean;
 }
 
-export const ChatFooter = ({ onSendMessage, editingMessage }: ChatFooterProps) => {
+export const ChatFooter = ({ onSendMessage, editingMessage, isSending = false }: ChatFooterProps) => {
   const [message, setMessage] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -22,6 +23,7 @@ export const ChatFooter = ({ onSendMessage, editingMessage }: ChatFooterProps) =
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSending) return;
     if (message.trim()) {
       onSendMessage(message);
       setMessage("");
@@ -31,6 +33,7 @@ export const ChatFooter = ({ onSendMessage, editingMessage }: ChatFooterProps) =
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
+      if (isSending) return;
       handleSubmit(e);
     }
   };
@@ -45,7 +48,7 @@ export const ChatFooter = ({ onSendMessage, editingMessage }: ChatFooterProps) =
   }, [message]);
 
   return (
-    <footer className="border-t border-border bg-card/50 backdrop-blur-sm p-4">
+    <footer className="border-t border-border bg-card/50 backdrop-blur-sm p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
       <div className="max-w-4xl mx-auto">
         {editingMessage && (
           <div className="text-xs text-muted-foreground mb-2">Editing previous message</div>
@@ -69,7 +72,7 @@ export const ChatFooter = ({ onSendMessage, editingMessage }: ChatFooterProps) =
           <Button
             type="submit"
             size="icon"
-            disabled={!message.trim()}
+            disabled={!message.trim() || isSending}
             className="bg-accent text-accent-foreground hover:bg-accent/90"
           >
             <Send className="w-4 h-4" />

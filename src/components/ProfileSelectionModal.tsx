@@ -3,6 +3,7 @@ import { User, Settings, Plus } from "lucide-react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -55,6 +56,9 @@ export const ProfileSelectionModal = ({
             <User className="w-5 h-5" />
             Select Profile
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Choose the active profile for this chat session.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3">

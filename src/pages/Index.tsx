@@ -8,10 +8,11 @@ const SettingsModal = React.lazy(() => import("@/components/SettingsModal").then
 const ProfilesModal = React.lazy(() => import("@/components/ProfilesModal").then(m => ({ default: m.ProfilesModal })));
 const MemoryModal = React.lazy(() => import("@/components/MemoryModal").then(m => ({ default: m.MemoryModal })));
 import { toast } from "sonner";
-import { ChatService, ChatMessage } from "@/services/chatService";
+import { ChatService, ChatMessage, OpenRouterError } from "@/services/chatService";
 import { searchBrave, BRAVE_SEARCH_TOOL, formatBraveResults } from "@/services/searchService";
 import { Storage, STORAGE_KEYS } from "@/utils/storage";
 import { fetchRSSHeadlines } from "@/services/rssService";
+import { getPromptWeatherText } from "@/services/weatherService";
 import { getMemories, saveConversationMemory } from "@/utils/memoryUtils";
 import {
   getAllConversationsFromDb,
@@ -21,40 +22,6 @@ import {
 } from "@/utils/indexedDb";
 import { useTheme, ThemeColor, ThemeVariant } from "@/hooks/useTheme";
 import { getPrimaryApiKey } from "@/utils/api";
-
-function weatherCodeToText(code: number): string {
-  const map: Record<number, string> = {
-    0: 'Clear sky',
-    1: 'Mainly clear',
-    2: 'Partly cloudy',
-    3: 'Overcast',
-    45: 'Fog',
-    48: 'Depositing rime fog',
-    51: 'Light drizzle',
-    53: 'Drizzle',
-    55: 'Dense drizzle',
-    56: 'Freezing drizzle',
-    57: 'Freezing dense drizzle',
-    61: 'Slight rain',
-    63: 'Rain',
-    65: 'Heavy rain',
-    66: 'Freezing rain',
-    67: 'Heavy freezing rain',
-    71: 'Slight snow',
-    73: 'Snow',
-    75: 'Heavy snow',
-    77: 'Snow grains',
-    80: 'Slight showers',
-    81: 'Showers',
-    82: 'Violent showers',
-    85: 'Slight snow showers',
-    86: 'Heavy snow showers',
-    95: 'Thunderstorm',
-    96: 'Thunderstorm with hail',
-    99: 'Violent thunderstorm'
-  };
-  return map[code] || 'Unknown';
-}
 
 interface Message {
   id: string;
@@ -90,12 +57,10 @@ interface Profile {
   useProfileTheme?: boolean;
   themeColor?: ThemeColor;
   themeVariant?: ThemeVariant;
-  [key: string]: unknown; // Add index signature for console.log compatibility
+  [key: string]: unknown;
 }
 
 const Index = () => {
-  console.log("Index component rendering...");
-  
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
@@ -106,6 +71,9 @@ const Index = () => {
   const [showMemory, setShowMemory] = useState(false);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const chatBodyRef = useRef<HTMLDivElement>(null);
+  const activeSendIdRef = useRef(0);
+  const activeRequestAbortRef = useRef<AbortController | null>(null);
+  const isMountedRef = useRef(true);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const { setColor, setVariant } = useTheme();
 
@@ -155,6 +123,14 @@ const Index = () => {
     };
     el.addEventListener('scroll', onScroll);
     return () => el.removeEventListener('scroll', onScroll);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      activeRequestAbortRef.current?.abort();
+      activeRequestAbortRef.current = null;
+    };
   }, []);
 
   // When new messages arrive and the user isn't at the bottom, show the button
@@ -220,7 +196,6 @@ const Index = () => {
       const vivicaProfile = Storage.createVivicaProfile();
       profiles.unshift(vivicaProfile);
       localStorage.setItem(STORAGE_KEYS.PROFILES, JSON.stringify(profiles));
-      console.log('Restored default Vivica profile');
     }
     if (savedProfileId) {
       const profile = profiles.find(p => p.id === savedProfileId);
@@ -287,7 +262,6 @@ const Index = () => {
 
   // Initialize default profiles and load data
   useEffect(() => {
-    console.log("Index component mounted, initializing...");
     initializeProfiles();
     loadConversations();
     loadCurrentProfile();
@@ -476,39 +450,7 @@ const Index = () => {
   };
 
   const fetchWeatherInfo = async (): Promise<string> => {
-    const fallback = { lat: 30.2366, lon: -92.8204, name: 'Welsh, LA' };
-
-    const fetchWeather = async (lat: number, lon: number) => {
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&temperature_unit=fahrenheit`;
-      try {
-        const resp = await fetch(url);
-        const data = await resp.json();
-        const current = data.current_weather;
-        const temp = Math.round(current.temperature) + '°F';
-        const condText = weatherCodeToText(current.weathercode);
-        return `${condText}, ${temp}`;
-      } catch {
-        return 'Weather unavailable.';
-      }
-    };
-
-    return new Promise((resolve) => {
-      if ('geolocation' in navigator) {
-        navigator.geolocation.getCurrentPosition(
-          async (pos) => {
-            const result = await fetchWeather(pos.coords.latitude, pos.coords.longitude);
-            resolve(result);
-          },
-          async () => {
-            const result = await fetchWeather(fallback.lat, fallback.lon);
-            resolve(result);
-          },
-          { enableHighAccuracy: false, timeout: 4000, maximumAge: 180000 }
-        );
-      } else {
-        fetchWeather(fallback.lat, fallback.lon).then(resolve);
-      }
-    });
+    return getPromptWeatherText();
   };
 
   const buildSystemPrompt = async () => {
@@ -542,6 +484,11 @@ const Index = () => {
   };
 
   const handleNewChat = useCallback(() => {
+    activeRequestAbortRef.current?.abort();
+    activeRequestAbortRef.current = null;
+    activeSendIdRef.current += 1;
+    setIsTyping(false);
+
     const newConversation: Conversation = {
       id: Date.now().toString(),
       title: 'New Chat',
@@ -556,8 +503,15 @@ const Index = () => {
   }, []);
 
   const handleSendMessage = async (content: string, baseConv?: Conversation) => {
+    if (isTyping) return;
     const conversation = baseConv || currentConversation;
     if (!conversation || !content.trim() || !currentProfile) return;
+    activeRequestAbortRef.current?.abort();
+    const requestController = new AbortController();
+    activeRequestAbortRef.current = requestController;
+    activeSendIdRef.current += 1;
+    const sendId = activeSendIdRef.current;
+    const isActiveSend = () => isMountedRef.current && activeSendIdRef.current === sendId;
 
 
     // Check for a /search command before routing the message to the LLM
@@ -596,6 +550,7 @@ const Index = () => {
     }
 
     const systemPrompt = await buildSystemPrompt();
+    if (!isActiveSend()) return;
     let chatMessages: ChatMessage[] = [
       { role: 'system', content: systemPrompt },
       ...updatedConversation.messages.map(m => ({ role: m.role, content: m.content }))
@@ -613,6 +568,7 @@ const Index = () => {
 
       try {
         const results = await searchBrave(query, braveKey);
+        if (!isActiveSend()) return;
         const formatted = results.map((r, i) => `${i + 1}. **${r.title}**\n${r.description}\n${r.url}`).join('\n\n');
 
         // Insert the raw search results as a new assistant message
@@ -667,8 +623,10 @@ const Index = () => {
             maxTokens: currentProfile.maxTokens,
           },
           tools: [BRAVE_SEARCH_TOOL],
-          tool_choice: 'auto'
+          tool_choice: 'auto',
+          signal: requestController.signal
         });
+        if (!isActiveSend()) return;
 
         const choice = first.choices?.[0];
         if (choice?.finish_reason === 'tool_calls' && choice.message?.tool_calls) {
@@ -677,6 +635,7 @@ const Index = () => {
             if (call.function?.name === 'search_brave') {
               const args = JSON.parse(call.function.arguments || '{}');
               const results = await searchBrave(args.query, braveKey);
+              if (!isActiveSend()) return;
               const toolMsg: ChatMessage = {
                 role: 'tool',
                 tool_call_id: call.id,
@@ -698,7 +657,9 @@ const Index = () => {
               temperature: currentProfile.temperature,
               maxTokens: currentProfile.maxTokens,
             },
+            signal: requestController.signal,
           });
+          if (!isActiveSend()) return;
 
           const finalContent = finalData.choices?.[0]?.message?.content || '';
 
@@ -721,7 +682,8 @@ const Index = () => {
           setConversations(prev => prev.map(conv => conv.id === conversation.id ? finalConv : conv));
 
           if (!conversation.autoTitled) {
-            await handleGenerateTitle(finalConv);
+            // Title generation is best-effort and should never affect message send success.
+            void handleGenerateTitle(finalConv);
           }
 
           setIsTyping(false);
@@ -734,6 +696,9 @@ const Index = () => {
           choice.message
         ];
       } catch (err) {
+        if (err instanceof OpenRouterError) {
+          throw err;
+        }
         console.warn('Brave tool call failed', err);
       }
     }
@@ -775,7 +740,9 @@ const Index = () => {
           temperature: currentProfile.temperature,
           maxTokens: currentProfile.maxTokens,
         },
+        signal: requestController.signal,
       });
+      if (!isActiveSend()) return;
       // TODO: if isCodeReq, send full code output to Vivica's model for a human
       // explanation before finalizing the message
 
@@ -792,6 +759,7 @@ const Index = () => {
 
         const token = typeof chunk === 'string' ? chunk : chunk.content;
         fullContent += token;
+        if (!isActiveSend()) return;
         const parsed = parseStreamingContent(fullContent);
         setCurrentConversation(prev => {
           if (!prev) return prev;
@@ -864,7 +832,9 @@ const Index = () => {
               temperature: currentProfile.temperature,
               maxTokens: currentProfile.maxTokens,
             },
+            signal: requestController.signal,
           });
+          if (!isActiveSend()) return;
           finalizedContent = explainData.choices?.[0]?.message?.content?.trim() || fullContent;
         } catch (e) {
           console.debug('Code explanation step failed; using raw code output', e);
@@ -879,12 +849,21 @@ const Index = () => {
         timestamp: new Date()
       };
       if (!conversation.autoTitled) {
-        await handleGenerateTitle(finalConv);
+        // Only run after successful message completion; do not block on title failures.
+        void handleGenerateTitle(finalConv);
       }
     } catch (error) {
+      if (!isActiveSend()) return;
+      if (error instanceof OpenRouterError && error.info.message === 'Request cancelled.') {
+        return;
+      }
+      const userError =
+        error instanceof OpenRouterError
+          ? error.info.message
+          : 'Failed to get AI response. Please try again.';
       const failedMessage: Message = {
         id: assistantMessage.id,
-        content: 'Sorry, I encountered an error. Please try again.',
+        content: userError,
         role: 'assistant',
         timestamp: new Date(),
         failed: true,
@@ -903,9 +882,14 @@ const Index = () => {
         conv.id === conversation.id ? errorConversation : conv
       ));
 
-      toast.error('Failed to get AI response. Please try again.');
+      toast.error(userError);
     } finally {
-      setIsTyping(false);
+      if (activeRequestAbortRef.current === requestController) {
+        activeRequestAbortRef.current = null;
+      }
+      if (isActiveSend()) {
+        setIsTyping(false);
+      }
     }
   };
 
@@ -979,6 +963,11 @@ const Index = () => {
 
 
   const handleSelectConversation = (conversation: Conversation) => {
+    activeRequestAbortRef.current?.abort();
+    activeRequestAbortRef.current = null;
+    activeSendIdRef.current += 1;
+    setIsTyping(false);
+
     setCurrentConversation(conversation);
     setSidebarOpen(false);
   };
@@ -1114,15 +1103,8 @@ const Index = () => {
     setShowScrollButton(false);
   };
 
-  console.log("Index component state:", {
-    sidebarOpen,
-    currentConversation: currentConversation?.id,
-    currentProfile: currentProfile?.name,
-    conversations: conversations.length
-  });
-
   return (
-    <div className="flex h-screen bg-background text-foreground overflow-hidden">
+    <div className="flex h-[100dvh] bg-background text-foreground overflow-hidden">
       <Sidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -1168,6 +1150,7 @@ const Index = () => {
         <ChatFooter
           onSendMessage={editingMessage ? handleSendEditedMessage : handleSendMessage}
           editingMessage={editingMessage?.content}
+          isSending={isTyping}
         />
       </div>
 

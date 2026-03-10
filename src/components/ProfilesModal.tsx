@@ -5,6 +5,7 @@ import { STORAGE_KEYS } from "@/utils/storage";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -187,6 +188,9 @@ export const ProfilesModal = ({ isOpen, onClose }: ProfilesModalProps) => {
             <User className="w-5 h-5" />
             AI Profiles
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Create, edit, and manage AI profiles.
+          </DialogDescription>
         </DialogHeader>
 
         {!showForm ? (

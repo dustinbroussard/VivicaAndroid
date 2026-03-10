@@ -5,6 +5,3 @@ export const DEFAULT_RSS_FEEDS = [
   'https://feeds.reuters.com/reuters/topNews',
   'https://www.npr.org/rss/rss.php?id=1001',
 ];
-export const CORS_PROXY = 'https://api.allorigins.win/raw?url={url}';
-export const buildProxyUrl = (url: string) =>
-  CORS_PROXY.replace('{url}', encodeURIComponent(url));
