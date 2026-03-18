@@ -3,6 +3,7 @@
   "short_name": "Vivica",
   "description": "Your intelligent AI assistant",
   "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",
