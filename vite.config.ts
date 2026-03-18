@@ -58,9 +58,11 @@ function rssDevProxyPlugin(): Plugin {
 }
 
 // https://vitejs.dev/config/
+const defaultBase = '/VivicaAndroid/';
+
 export default defineConfig(({ mode }) => ({
-  // Allow overriding base for GitHub Pages via env
-  base: process.env.VITE_BASE || './',
+  // Default production builds to the GitHub Pages repo base, while allowing overrides for other targets.
+  base: process.env.VITE_BASE || (mode === 'production' ? defaultBase : '/'),
   preview: {
     headers: {
       'X-Content-Type-Options': 'nosniff',
