@@ -70,7 +70,7 @@ export const Sidebar = ({
   const [newTitle, setNewTitle] = useState("");
 
   const { color, variant } = useTheme();
-  const logoSrc = `/logo-${color}${variant}.png`;
+  const logoSrc = `${import.meta.env.BASE_URL}logo-${color}${variant}.png`;
 
   const filteredConversations = conversations.filter(conv =>
     conv.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
