@@ -11,6 +11,31 @@ import { AppErrorBoundary } from "./components/AppErrorBoundary";
 
 const queryClient = new QueryClient();
 
+function getRouterBasename() {
+  const configuredBase = import.meta.env.BASE_URL;
+
+  if (configuredBase && configuredBase !== "/" && configuredBase !== "./") {
+    return configuredBase.endsWith("/")
+      ? configuredBase.slice(0, -1)
+      : configuredBase;
+  }
+
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  // GitHub Pages project sites live under /<repo>. Derive that at runtime
+  // when the asset base is relative (`./`) so routing still resolves correctly.
+  if (window.location.hostname.endsWith("github.io")) {
+    const [repoSegment] = window.location.pathname.split("/").filter(Boolean);
+    return repoSegment ? `/${repoSegment}` : "";
+  }
+
+  return "";
+}
+
+const routerBasename = getRouterBasename();
+
 const AppContent = () => {
   return (
     <AppErrorBoundary>
@@ -18,7 +43,7 @@ const AppContent = () => {
         <Toaster />
         <Sonner />
         <InstallPrompt />
-        <BrowserRouter basename={import.meta.env.BASE_URL} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <BrowserRouter basename={routerBasename} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="*" element={<NotFound />} />
