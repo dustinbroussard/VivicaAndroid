@@ -58,10 +58,11 @@ function rssDevProxyPlugin(): Plugin {
 }
 
 // https://vitejs.dev/config/
-const defaultBase = '/VivicaAndroid/';
+// Use a relative production base so the app can be served from any GitHub Pages repo path.
+const defaultBase = './';
 
 export default defineConfig(({ mode }) => ({
-  // Default production builds to the GitHub Pages repo base, while allowing overrides for other targets.
+  // Allow explicit overrides, but keep the default build path-agnostic for GitHub Pages.
   base: process.env.VITE_BASE || (mode === 'production' ? defaultBase : '/'),
   preview: {
     headers: {

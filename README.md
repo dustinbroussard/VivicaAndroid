@@ -1,7 +1,7 @@
 # Vivica: Your Local AI Chat Companion
 
-[![Deploy to GitHub Pages](https://github.com/dustinbroussard/VivicaAndroid/actions/workflows/deploy-pages.yml/badge.svg?branch=main)](https://github.com/dustinbroussard/VivicaAndroid/actions/workflows/deploy-pages.yml)
-[**Live Site**](https://dustinbroussard.github.io/VivicaAndroid/)
+[![Deploy to GitHub Pages](https://github.com/dustinbroussard/Vivica/actions/workflows/deploy-pages.yml/badge.svg?branch=main)](https://github.com/dustinbroussard/Vivica/actions/workflows/deploy-pages.yml)
+[**Live Site**](https://dustinbroussard.github.io/Vivica/)
 
 **Vivica** is a privacy-first, AI-powered chat assistant built for real personality, deep memory, and full user control—all running locally as a PWA. She’s more than just another chatbot: Vivica remembers, adapts, and reacts in ways no other assistant does.
 
@@ -128,4 +128,4 @@ Feel free to fork, remix, and build your own companion.
 *“Sharp wit, sultry charm, unapologetic presence, and a little dangerous.”*  
 — Vivica, probably
 
-# VivicaAndroid
+# Vivica
