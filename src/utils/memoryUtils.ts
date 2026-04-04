@@ -161,9 +161,11 @@ export async function saveConversationMemory(
       cleanedSummary = cleanedSummary.slice(0, charLimit);
     }
 
-    const memoryData = {
+    const memoryData: MemoryItem = {
       id: `memory-${Date.now()}`,
       content: cleanedSummary,
+      scope,
+      profileId: scope === 'profile' ? profileId : undefined,
       createdAt: new Date().toISOString(),
       tags: ['auto-summary']
     };

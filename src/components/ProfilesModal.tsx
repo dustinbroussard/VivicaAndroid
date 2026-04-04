@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { X, User, Plus, Edit, Trash2, Palette, Sun, Moon } from "lucide-react";
+import { User, Plus, Edit, Trash2, Palette, Sun, Moon } from "lucide-react";
 import { STORAGE_KEYS } from "@/utils/storage";
 import {
   Dialog,
@@ -81,12 +81,12 @@ export const ProfilesModal = ({ isOpen, onClose }: ProfilesModalProps) => {
 
     if (!list.some(p => p.isVivica)) {
       // Ensure the built-in Vivica profile always exists
-      list.unshift(Storage.createVivicaProfile());
+      list.unshift(Storage.createVivicaProfile() as Profile);
     }
 
     if (list.length === 0) {
       list = [
-        Storage.createVivicaProfile(),
+        Storage.createVivicaProfile() as Profile,
         {
           id: '2',
           name: 'Creative Writer',
@@ -243,7 +243,7 @@ export const ProfilesModal = ({ isOpen, onClose }: ProfilesModalProps) => {
                           // Refresh the profile list by re-triggering the useEffect
                           setProfiles(JSON.parse(localStorage.getItem(STORAGE_KEYS.PROFILES) || '[]'));
                         }
-                      } catch (err) {
+                      } catch {
                         toast.error('Invalid profiles file');
                       }
                     };

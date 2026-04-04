@@ -1,5 +1,5 @@
 
-import { Menu, Sun, Moon, Bookmark, Sparkles, Loader2 } from "lucide-react";
+import { Menu, Sun, Moon, Bookmark, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";

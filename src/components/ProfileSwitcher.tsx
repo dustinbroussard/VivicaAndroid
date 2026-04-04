@@ -40,7 +40,7 @@ export const ProfileSwitcher = ({
 
     if (!list.some(p => p.isVivica)) {
       // Auto-recreate Vivica if missing
-      list.unshift(Storage.createVivicaProfile());
+      list.unshift(Storage.createVivicaProfile() as Profile);
       Storage.set(STORAGE_KEYS.PROFILES, list);
     }
 

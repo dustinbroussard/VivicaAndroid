@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { X, AlertTriangle, Key, Save, Trash } from "lucide-react";
+import { AlertTriangle, Key, Save, Trash } from "lucide-react";
 import { exportAllData, importAllData } from "@/utils/storage";
 import {
   Dialog,
@@ -230,7 +230,7 @@ export const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
                               toast.error('Failed to restore backup');
                             });
                         }
-                      } catch (err) {
+                      } catch {
                         toast.error('Invalid backup file');
                       }
                     };

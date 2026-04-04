@@ -1,6 +1,6 @@
 
 import { useState, useCallback } from 'react';
-import { ChatService, ChatMessage } from '@/services/chatService';
+import { ChatService, ChatMessage, type StreamContent } from '@/services/chatService';
 import { getPrimaryApiKey } from '@/utils/api';
 
 interface UseOpenRouterChatProps {
@@ -38,7 +38,13 @@ export const useOpenRouterChat = ({ apiKey }: UseOpenRouterChatProps = {}) => {
       });
 
       for await (const token of chatService.streamResponse(response)) {
-        onToken(token);
+        if (typeof token === 'string') {
+          onToken(token);
+          continue;
+        }
+        if ('content' in token) {
+          onToken((token as StreamContent).content);
+        }
       }
 
       onComplete();

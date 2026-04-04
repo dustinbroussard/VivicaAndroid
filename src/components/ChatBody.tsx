@@ -1,5 +1,5 @@
 
-import { forwardRef, memo, useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { forwardRef, memo, useEffect, useRef, useState, useCallback, useMemo, type ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { RotateCcw, Copy, Pencil } from "lucide-react";
@@ -103,6 +103,7 @@ interface ChatBodyProps {
   onEditMessage?: (message: Message) => void;
   onSendMessage: (content: string) => void;
   onNewChat: () => void;
+  onScroll?: (isAtBottom: boolean) => void;
 }
 
 interface MessageRowProps {
@@ -140,7 +141,7 @@ const MessageRow = memo(({
   };
   const isLastMessage = index === lastIndex;
   const markdownComponents = useMemo(() => ({
-    code({ inline, className, children, ...props }: { inline?: boolean; className?: string; children?: unknown }) {
+    code({ inline, className, children, ...props }: { inline?: boolean; className?: string; children?: ReactNode }) {
       if (inline) {
         return (
           <code className="inline-code" {...props}>{children}</code>
@@ -252,9 +253,7 @@ const MessageRow = memo(({
 
             {message.role === 'user' && onEditMessage && (
               (() => {
-                const isLastUser =
-                  (index === lastIndex && message.role === 'user') ||
-                  (index === lastIndex - 1 && message.role === 'assistant');
+                const isLastUser = index === lastIndex;
                 return isLastUser ? (
                   <Button
                     variant="ghost"
@@ -307,7 +306,7 @@ const MessageRow = memo(({
 );
 
 export const ChatBody = forwardRef<HTMLDivElement, ChatBodyProps>(
-  ({ conversation, currentProfile, isTyping, onRetryMessage, onRegenerateMessage, onEditMessage, onSendMessage, onNewChat }, ref) => {
+  ({ conversation, currentProfile, isTyping, onRetryMessage, onRegenerateMessage, onEditMessage, onSendMessage, onNewChat, onScroll }, ref) => {
     const { color, variant } = useTheme();
     const logoSrc = `${import.meta.env.BASE_URL}logo-${color}${variant}.png`;
     const [welcomeMsg, setWelcomeMsg] = useState('');
@@ -401,7 +400,7 @@ export const ChatBody = forwardRef<HTMLDivElement, ChatBodyProps>(
         }
 
         throw new Error('empty');
-      } catch (e) {
+      } catch {
         try {
           // Graceful fallback: use a cached welcome message if available
           const cached = await getCachedWelcomeMessages();
@@ -412,7 +411,7 @@ export const ChatBody = forwardRef<HTMLDivElement, ChatBodyProps>(
             setWelcomeError(false);
             return;
           }
-        } catch (_) {
+        } catch {
           // ignore cache errors
         }
         // Use rotating snarky fallback welcomes and allow click-to-retry
@@ -429,13 +428,15 @@ export const ChatBody = forwardRef<HTMLDivElement, ChatBodyProps>(
     useEffect(() => {
       const el = getScrollContainer();
       if (!el) return;
-      const onScroll = () => {
-        shouldAutoScrollRef.current = el.scrollHeight - el.scrollTop <= el.clientHeight + 64;
+      const onScrollInternal = () => {
+        const isAtBottom = el.scrollHeight - el.scrollTop <= el.clientHeight + 64;
+        shouldAutoScrollRef.current = isAtBottom;
+        if (onScroll) onScroll(isAtBottom);
       };
-      onScroll();
-      el.addEventListener('scroll', onScroll, { passive: true });
-      return () => el.removeEventListener('scroll', onScroll);
-    }, [getScrollContainer]);
+      onScrollInternal();
+      el.addEventListener('scroll', onScrollInternal, { passive: true });
+      return () => el.removeEventListener('scroll', onScrollInternal);
+    }, [getScrollContainer, onScroll]);
 
     useEffect(() => {
       const el = getScrollContainer();

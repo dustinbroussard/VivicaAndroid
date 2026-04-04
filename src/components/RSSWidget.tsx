@@ -11,7 +11,7 @@ interface RSSWidgetProps {
 }
 
 export const RSSWidget = ({ onSendMessage, onNewChat }: RSSWidgetProps) => {
-  const tickerRef = useRef<HTMLDivElement>(null);
+  useRef<HTMLDivElement>(null);
   const [currentHeadline, setCurrentHeadline] = useState<Headline | null>(null);
   const [headlines, setHeadlines] = useState<Headline[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);

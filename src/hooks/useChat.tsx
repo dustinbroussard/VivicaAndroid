@@ -1,8 +1,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { toast } from "sonner";
-import { ChatService, ChatMessage, OpenRouterError } from "@/services/chatService";
-import { searchBrave, BRAVE_SEARCH_TOOL, formatBraveResults } from "@/services/searchService";
+import { ChatService, ChatMessage } from "@/services/chatService";
 import { fetchRSSHeadlines } from "@/services/rssService";
 import { getPromptWeatherText } from "@/services/weatherService";
 import { getMemories } from "@/utils/memoryUtils";
@@ -10,6 +9,22 @@ import { Storage, STORAGE_KEYS } from "@/utils/storage";
 import { getPrimaryApiKey } from "@/utils/api";
 import { Message, Conversation } from "./useConversations";
 import { Profile } from "./useProfiles";
+
+type StoredMemoryShape = {
+  identity?: {
+    name?: string;
+    pronouns?: string;
+    occupation?: string;
+    location?: string;
+  };
+  personality?: {
+    tone?: string;
+    style?: string;
+    interests?: string;
+  };
+  customInstructions?: string;
+  systemNotes?: string;
+};
 
 export function useChat(
   currentConversation: Conversation | null,
@@ -49,7 +64,7 @@ export function useChat(
     return { display: text, loading: false } as const;
   };
 
-  const getMemoryPrompt = async () => {
+  const getMemoryPrompt = useCallback(async () => {
     const memoryActive = Storage.get('vivica-memory-active', false);
     if (!memoryActive) return '';
 
@@ -58,18 +73,18 @@ export function useChat(
     const memoryScopeRaw = Storage.get('vivica-memory-scope', 'profile') as string;
     const includeProfile = memoryScopeRaw === 'profile';
 
-    const getValidatedMemory = (key: string) => {
+    const getValidatedMemory = (key: string): StoredMemoryShape | null => {
       try {
         const memory = Storage.get(key, null);
-        return typeof memory === 'object' ? memory : null;
+        return memory && typeof memory === 'object' ? (memory as StoredMemoryShape) : null;
       } catch {
         return null;
       }
     };
 
-    const globalMem = getValidatedMemory(`${memoryKeyPrefix}-global`) as any;
+    const globalMem = getValidatedMemory(`${memoryKeyPrefix}-global`);
     const profileMem = includeProfile && profileId
-      ? getValidatedMemory(`${memoryKeyPrefix}-profile-${profileId}`) as any
+      ? getValidatedMemory(`${memoryKeyPrefix}-profile-${profileId}`)
       : null;
 
     const pickValue = (profileValue?: string, globalValue?: string) =>
@@ -91,7 +106,7 @@ export function useChat(
     const interests = pickValue(profileMem?.personality?.interests, globalMem?.personality?.interests);
     if (interests) prompt += `The user is interested in: ${interests}. `;
 
-    const processInstructions = (mem: any) => {
+    const processInstructions = (mem: StoredMemoryShape | null) => {
       let p = '';
       if (mem?.customInstructions) p += `${mem.customInstructions} `;
       if (mem?.systemNotes) p += `Additional notes: ${mem.systemNotes} `;
@@ -122,9 +137,9 @@ export function useChat(
     }
 
     return prompt.trim();
-  };
+  }, []);
 
-  const buildSystemPrompt = async (profile: Profile) => {
+  const buildSystemPrompt = useCallback(async (profile: Profile) => {
     const profilePrompt = profile?.systemPrompt || 'You are a helpful AI assistant.';
     const memoryPrompt = await getMemoryPrompt();
     const settings = Storage.get('vivica-settings', { includeWeather: false, includeRss: false });
@@ -143,7 +158,7 @@ export function useChat(
       }
     }
     return prompt;
-  };
+  }, [getMemoryPrompt]);
 
   const handleSendMessage = useCallback(async (content: string, currentProfile: Profile | null, baseConv?: Conversation) => {
     if (isTyping || !currentProfile) return;
@@ -262,7 +277,7 @@ export function useChat(
             );
             return { ...prev, messages: msgs, lastMessage: parsed.display, timestamp: new Date() };
         };
-        setCurrentConversation(updateFn as any);
+        setCurrentConversation(updateFn);
         setConversations(p => p.map(c => c.id === conversation.id ? updateFn(c) as Conversation : c));
       }
     } catch (err) {
@@ -272,7 +287,7 @@ export function useChat(
     } finally {
       if (isActiveSend()) setIsTyping(false);
     }
-  }, [currentConversation, setCurrentConversation, setConversations, isTyping]);
+  }, [buildSystemPrompt, currentConversation, setCurrentConversation, setConversations, isTyping]);
 
   return { isTyping, handleSendMessage, activeRequestAbortRef };
 }

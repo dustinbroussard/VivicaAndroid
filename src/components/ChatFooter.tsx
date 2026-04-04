@@ -63,7 +63,8 @@ export const ChatFooter = ({ onSendMessage, editingMessage, isSending = false }:
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Type your message..."
-              className="min-h-[44px] max-h-[120px] resize-none pr-3 bg-background border-input"
+              aria-label="Message to Vivica"
+              className="min-h-[44px] max-h-[120px] resize-none pr-3 bg-background border-input focus-visible:ring-2 focus-visible:ring-accent"
             />
             
           </div>
@@ -73,6 +74,7 @@ export const ChatFooter = ({ onSendMessage, editingMessage, isSending = false }:
             type="submit"
             size="icon"
             disabled={!message.trim() || isSending}
+            aria-label={isSending ? "Sending message..." : "Send message"}
             className="bg-accent text-accent-foreground hover:bg-accent/90"
           >
             <Send className="w-4 h-4" />

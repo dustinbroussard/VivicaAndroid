@@ -199,6 +199,8 @@ export const STORAGE_KEYS = {
   MEMORIES: 'vivica-memories'
 } as const;
 
+type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];
+
 export async function exportAllData(): Promise<Record<string, unknown>> {
   const data: Record<string, unknown> = { _backupVersion: 2 };
   const localSnapshot: Record<string, unknown> = {};
@@ -286,8 +288,8 @@ export async function importAllData(data: Record<string, unknown>): Promise<void
     });
   } else {
     Object.entries(data).forEach(([key, value]) => {
-      if (Object.values(STORAGE_KEYS).includes(key as string)) {
-        Storage.set(key, value);
+      if ((Object.values(STORAGE_KEYS) as StorageKey[]).includes(key as StorageKey)) {
+        Storage.set(key as StorageKey, value);
       }
     });
   }

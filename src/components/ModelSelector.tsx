@@ -1,7 +1,7 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Check, ChevronDown, Search, Loader2, Info } from "lucide-react";
+import { Check, ChevronDown, Loader2, Info } from "lucide-react";
 import {
   Command,
   CommandEmpty,
@@ -28,7 +28,7 @@ interface ModelSelectorProps {
 }
 
 export const ModelSelector = ({ value, onValueChange, placeholder = "Select a model..." }: ModelSelectorProps) => {
-  const isMobile = useIsMobile();
+  useIsMobile();
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null); // track which model row is expanded on mobile
   const scrollRef = useRef<HTMLDivElement>(null);

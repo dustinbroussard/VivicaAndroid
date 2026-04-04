@@ -64,6 +64,23 @@ const defaultBase = './';
 export default defineConfig(({ mode }) => ({
   // Allow explicit overrides, but keep the default build path-agnostic for GitHub Pages.
   base: process.env.VITE_BASE || (mode === 'production' ? defaultBase : '/'),
+  build: {
+    target: 'esnext',
+    outDir: 'dist',
+    sourcemap: mode === 'development',
+    minify: 'esbuild',
+    reportCompressedSize: false,
+    cssCodeSplit: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-ui': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', 'lucide-react'],
+          'vendor-utils': ['date-fns', 'zod', 'clsx', 'tailwind-merge']
+        }
+      }
+    }
+  },
   preview: {
     headers: {
       'X-Content-Type-Options': 'nosniff',

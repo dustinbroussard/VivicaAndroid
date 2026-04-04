@@ -130,16 +130,16 @@ export const Sidebar = ({
                 onClick={onNewChat}
                 className="flex items-center gap-2 focus:outline-none hover:opacity-80 transition-opacity"
                 title="Go to Welcome"
+                aria-label="Vivica - Go to Welcome"
               >
-                <img src={logoSrc} alt="Vivica" className="w-8 h-8" />
+                <img src={logoSrc} alt="" className="w-8 h-8" aria-hidden="true" />
                 <span className="font-semibold">Vivica</span>
               </button>
               <div className="flex items-center gap-1">
                 <Button
                   variant="ghost"
                   size="sm"
-                  title="Regenerate title"
-                  disabled={!currentConversation}
+                  aria-label="Regenerate conversation title"
                   onClick={() =>
                     currentConversation && onGenerateTitle(currentConversation)
                   }
@@ -151,6 +151,7 @@ export const Sidebar = ({
                   size="sm"
                   onClick={onClose}
                   className="md:hidden"
+                  aria-label="Close sidebar"
                 >
                   <X className="w-4 h-4" />
                 </Button>
@@ -186,14 +187,15 @@ export const Sidebar = ({
             ) : (
               <div className="space-y-1">
                 {filteredConversations.map((conversation) => (
-                  <div
+                  <button
                     key={conversation.id}
-                    className={`group relative p-3 rounded-lg cursor-pointer transition-colors ${
+                    className={`group relative w-full text-left p-3 rounded-lg cursor-pointer transition-colors ${
                       currentConversation?.id === conversation.id
                         ? 'bg-accent/10 border border-accent/20'
-                        : 'hover:bg-muted/50'
+                        : 'hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-accent'
                     }`}
                     onClick={() => onSelectConversation(conversation)}
+                    aria-current={currentConversation?.id === conversation.id ? 'true' : undefined}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0">
@@ -240,7 +242,7 @@ export const Sidebar = ({
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}

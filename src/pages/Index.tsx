@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, Suspense, useCallback } from "react";
+import React, { useState, useRef, Suspense } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { ChatHeader } from "@/components/ChatHeader";
 import { ChatBody } from "@/components/ChatBody";
@@ -16,13 +16,14 @@ import { useChat } from "@/hooks/useChat";
 import { saveConversationMemory } from "@/utils/memoryUtils";
 import { getPrimaryApiKey } from "@/utils/api";
 import { toast } from "sonner";
+import type { Message, Conversation } from "@/hooks/useConversations";
 
 const Index = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showProfiles, setShowProfiles] = useState(false);
   const [showMemory, setShowMemory] = useState(false);
-  const [editingMessage, setEditingMessage] = useState<any>(null);
+  const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
   
   const chatBodyRef = useRef<HTMLDivElement>(null);
@@ -57,7 +58,7 @@ const Index = () => {
     handleSendMessage(content, currentProfile);
   };
 
-  const handleEditMessage = (message: any) => {
+  const handleEditMessage = (message: Message) => {
     setEditingMessage(message);
   };
 
@@ -87,7 +88,7 @@ const Index = () => {
         conversations={conversations}
         currentConversation={currentConversation}
         onSelectConversation={(conv) => {
-          setCurrentConversation(conv as any);
+          setCurrentConversation(conv as Conversation);
           setSidebarOpen(false);
         }}
         onDeleteConversation={deleteConversation}
@@ -121,6 +122,7 @@ const Index = () => {
           onSendMessage={onSendMessage}
           onNewChat={onNewChat}
           onEditMessage={handleEditMessage}
+          onScroll={(isAtBottom) => setShowScrollButton(!isAtBottom)}
         />
 
         <ChatFooter
@@ -130,29 +132,33 @@ const Index = () => {
         />
 
         <ScrollToBottomButton 
-          show={showScrollButton}
-          onShowChange={setShowScrollButton}
-          containerRef={chatBodyRef as any}
+          visible={showScrollButton}
+          onClick={() => {
+            if (chatBodyRef.current) {
+              chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
+              setShowScrollButton(false);
+            }
+          }}
         />
       </div>
 
       <Suspense fallback={null}>
         {showSettings && (
           <SettingsModal
-            open={showSettings}
-            onOpenChange={setShowSettings}
+            isOpen={showSettings}
+            onClose={() => setShowSettings(false)}
           />
         )}
         {showProfiles && (
           <ProfilesModal
-            open={showProfiles}
-            onOpenChange={setShowProfiles}
+            isOpen={showProfiles}
+            onClose={() => setShowProfiles(false)}
           />
         )}
         {showMemory && (
           <MemoryModal
-            open={showMemory}
-            onOpenChange={setShowMemory}
+            isOpen={showMemory}
+            onClose={() => setShowMemory(false)}
           />
         )}
       </Suspense>

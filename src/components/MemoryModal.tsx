@@ -214,7 +214,7 @@ export const MemoryModal = ({
             setMemories(importedData.memories);
           }
           toast.success("Memory imported successfully");
-        } catch (error) {
+        } catch {
           toast.error("Invalid file format");
         }
       };
